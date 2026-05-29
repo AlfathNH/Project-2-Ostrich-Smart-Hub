@@ -16,7 +16,13 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: { charcoal: '#1a1a1a', gold: '#FFD700', ivory: '#f8f9fa' },
+                    colors: {
+                        charcoal: '#1a1a1a',
+                        gold: '#FFD700',
+                        ivory: '#f8f9fa',
+                        'gold-dark': '#c9a800',
+                        'glass-bg': 'rgba(26, 26, 26, 0.75)',
+                    },
                     fontFamily: { inter: ['Inter', 'sans-serif'] }
                 }
             }
@@ -31,29 +37,29 @@
             background:
                 radial-gradient(ellipse 70% 50% at 15% 30%, rgba(255,215,0,0.06) 0%, transparent 60%),
                 radial-gradient(ellipse 50% 40% at 85% 70%, rgba(255,215,0,0.04) 0%, transparent 60%),
-                #090909;
+                #0f0f0f;
             min-height: 100vh;
         }
         body::before {
             content: '';
             position: fixed; inset: 0;
             background-image:
-                linear-gradient(rgba(255,215,0,0.018) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,215,0,0.018) 1px, transparent 1px);
+                linear-gradient(rgba(255,215,0,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,215,0,0.015) 1px, transparent 1px);
             background-size: 60px 60px;
             pointer-events: none; z-index: 0;
         }
 
         /* ===== NAVBAR ===== */
         .glass-navbar {
-            background: rgba(9,9,9,0.8);
+            background: rgba(15,15,15,0.8);
             backdrop-filter: blur(20px);
             border-bottom: 1px solid rgba(255,215,0,0.1);
         }
 
         /* ===== CARDS ===== */
         .glass-card {
-            background: rgba(18,18,18,0.85);
+            background: rgba(26,26,26,0.85);
             backdrop-filter: blur(24px);
             border: 1px solid rgba(255,255,255,0.07);
             border-radius: 24px;
@@ -864,61 +870,63 @@
             document.getElementById('payment-detail-content').innerHTML = paymentHints[method];
         }
 
-        // ===== CTA CLICK: validate → spinner (1.5s) → QRIS modal =====
+        // ===== FITUR PEMROSESAN PEMBAYARAN & TRIGGER MODAL QRIS =====
+
+        // Menangani aksi klik pada tombol bayar utama: sinkronisasi data, validasi input, trigger spinner loading 1.5s, dan tampilkan modal QRIS
         function handlePayClick() {
             const nama  = document.getElementById('nama-pemesan').value.trim();
             const phone = document.getElementById('phone').value.trim();
 
-            // Sync hidden fields
+            // Sinkronkan data input ke form tersembunyi (hidden input) sebelum dikirim ke backend
             document.getElementById('hf-nama').value    = nama;
             document.getElementById('hf-phone').value   = phone;
             document.getElementById('hf-catatan').value = document.getElementById('catatan').value;
 
-            // Validation
+            // Validasi input wajib diisi
             if (!nama)            { showAlert('Mohon isi nama lengkap Anda.');     return; }
             if (!phone)           { showAlert('Mohon isi nomor WhatsApp Anda.');   return; }
             if (!selectedPayment) { showAlert('Mohon pilih metode pembayaran.');   return; }
 
-            // ===== 1. Button loading state =====
+            // ===== 1. Ubah state tombol menjadi loading/proses =====
             const btn = document.getElementById('btn-pay');
             document.getElementById('btn-pay-text').innerHTML =
                 '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
             btn.classList.add('loading');
 
-            // ===== 2. Spinner overlay (1.5 s) =====
+            // ===== 2. Tampilkan overlay spinner loading (efek memproses transaksi selama 1.5 detik) =====
             const spinner = document.getElementById('spinner-overlay');
             spinner.classList.add('active');
 
-            // ===== 3. After 1.5s — hide spinner, show QRIS modal =====
+            // ===== 3. Setelah 1.5 detik, sembunyikan spinner lalu tampilkan Modal QRIS =====
             setTimeout(() => {
                 spinner.classList.remove('active');
                 openQrisModal();
 
-                // Reset button
+                // Kembalikan tombol pembayaran ke state awal (siap diklik kembali jika modal ditutup)
                 btn.classList.remove('loading');
                 document.getElementById('btn-pay-text').innerHTML =
                     '<i class="fa-solid fa-lock text-sm"></i> Konfirmasi &amp; Bayar Sekarang';
             }, 1500);
         }
 
-        // ===== OPEN QRIS MODAL =====
+        // Membuka modal QRIS kustom, mengkalkulasi nominal tagihan, dan memulai timer hitung mundur
         function openQrisModal() {
             const total = qtyCount * HARGA_SATUAN;
 
-            // Update modal amounts
+            // Perbarui data nominal harga total dan jumlah tiket di dalam modal
             document.getElementById('modal-total-display').textContent = fmt(total);
             document.getElementById('modal-qty-info').textContent =
                 qtyCount + ' tiket · Kunjungan hari ini';
 
-            // Show modal
+            // Tampilkan modal QRIS dan kunci scroll layar utama
             document.getElementById('qris-modal').classList.add('active');
             document.body.style.overflow = 'hidden';
 
-            // Start 5-min countdown
+            // Mulai hitung mundur 5 menit (300 detik) untuk kedaluwarsa QRIS
             startCountdown(300);
         }
 
-        // ===== COUNTDOWN TIMER (5 min) =====
+        // Fitur hitung mundur (countdown timer) 5 menit untuk pembatasan waktu pembayaran QRIS
         function startCountdown(seconds) {
             if (qrTimer) clearInterval(qrTimer);
             let remaining = seconds;
@@ -928,6 +936,8 @@
                 const m = String(Math.floor(remaining / 60)).padStart(2, '0');
                 const s = String(remaining % 60).padStart(2, '0');
                 el.textContent = `${m}:${s}`;
+                
+                // Jika waktu habis, bersihkan timer dan ubah teks status
                 if (remaining <= 0) {
                     clearInterval(qrTimer);
                     el.textContent = 'Kedaluwarsa';
@@ -936,11 +946,13 @@
             }, 1000);
         }
 
-        // ===== NICE ALERT (inline banner instead of browser alert) =====
+        // Menampilkan pesan error/warning berupa banner merah melayang di bagian atas layar agar estetika UI tetap terjaga
         function showAlert(msg) {
-            // Remove old alert if any
+            // Hapus alert lama jika masih ada
             const old = document.getElementById('inline-alert');
             if (old) old.remove();
+            
+            // Buat elemen alert baru secara dinamis
             const div = document.createElement('div');
             div.id = 'inline-alert';
             div.style.cssText = [
@@ -952,10 +964,12 @@
             ].join(';');
             div.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-2"></i>' + msg;
             document.body.appendChild(div);
+            
+            // Hapus otomatis banner setelah 3.5 detik
             setTimeout(() => div.remove(), 3500);
         }
 
-        // Close modal on ESC
+        // Menutup modal QRIS jika pengguna menekan tombol Escape (ESC)
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') {
                 document.getElementById('qris-modal').classList.remove('active');

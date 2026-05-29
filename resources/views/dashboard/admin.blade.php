@@ -216,7 +216,7 @@
                 </thead>
                 <tbody id="animal-tbody">
                     @forelse($animals as $i => $animal)
-                    <tr class="animal-row border-b transition-colors hover:bg-white/[0.03]{{ $i >= 10 ? ' extra-row hidden' : '' }}"
+                    <tr class="animal-row border-b transition-colors hover:bg-white/[0.03]"
                         style="border-color:rgba(255,255,255,0.04)">
                         <td class="px-6 py-4 text-white/30 text-sm">{{ $i + 1 }}</td>
                         <td class="px-4 py-4">
@@ -242,8 +242,15 @@
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex items-center justify-center gap-2">
+                                {{-- Tombol Edit --}}
+                                <button type="button"
+                                    onclick="openEditAnimal({{ $animal->id }}, '{{ addslashes($animal->name) }}', {{ $animal->amount }}, '{{ addslashes($animal->feeding_detail) }}', '{{ addslashes($animal->health_status ?? 'Sehat') }}')"
+                                    class="ripple-btn flex items-center gap-1.5 text-xs font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg border border-blue-500/20 transition-all">
+                                    <i class="fa-solid fa-pen-to-square text-[10px]"></i> Edit
+                                </button>
+                                {{-- Tombol Hapus --}}
                                 <form action="{{ route('admin.animal.destroy', $animal->id) }}" method="POST"
-                                      onsubmit="return confirm('Hapus data {{ addslashes($animal->name) }}?')">
+                                      onsubmit="return confirmDelete(event, this, '{{ addslashes($animal->name) }}')">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="ripple-btn flex items-center gap-1.5 text-xs font-semibold text-red-400 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-lg border border-red-500/20 transition-all">
                                         <i class="fa-solid fa-trash text-[10px]"></i> Hapus
@@ -264,16 +271,29 @@
 
         <div class="px-6 py-4 flex items-center justify-between gap-3 border-t" style="border-color:rgba(255,255,255,0.06)">
             <span class="text-white/30 text-xs">
-                Menampilkan <span id="visible-count">{{ min(10, $animals->count()) }}</span> dari {{ $animals->count() }} spesies
+                Menampilkan {{ $animals->firstItem() }}–{{ $animals->lastItem() }} dari {{ $animals->total() }} spesies
             </span>
-            @if($animals->count() > 10)
-            <button id="show-more-btn" onclick="toggleMoreRows()"
-                    class="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl border transition-all"
-                    style="color:#FFD700; border-color:rgba(255,215,0,0.3); background:rgba(255,215,0,0.06)">
-                <i class="fa-solid fa-chevron-down text-[10px]" id="show-more-icon"></i>
-                <span id="show-more-label">Lihat {{ $animals->count() - 10 }} Satwa Lainnya</span>
-            </button>
-            @endif
+            <div class="flex items-center gap-1">
+                @if($animals->onFirstPage())
+                    <span class="pagination-btn pagination-disabled"><i class="fa-solid fa-chevron-left text-[10px]"></i></span>
+                @else
+                    <a href="{{ $animals->appends(request()->except('page_animal'))->previousPageUrl() }}&tab=satwa" class="pagination-btn"><i class="fa-solid fa-chevron-left text-[10px]"></i></a>
+                @endif
+
+                @foreach($animals->getUrlRange(max(1, $animals->currentPage()-2), min($animals->lastPage(), $animals->currentPage()+2)) as $page => $url)
+                    @if($page == $animals->currentPage())
+                        <span class="pagination-btn pagination-active">{{ $page }}</span>
+                    @else
+                        <a href="{{ $url }}&tab=satwa" class="pagination-btn">{{ $page }}</a>
+                    @endif
+                @endforeach
+
+                @if($animals->hasMorePages())
+                    <a href="{{ $animals->appends(request()->except('page_animal'))->nextPageUrl() }}&tab=satwa" class="pagination-btn"><i class="fa-solid fa-chevron-right text-[10px]"></i></a>
+                @else
+                    <span class="pagination-btn pagination-disabled"><i class="fa-solid fa-chevron-right text-[10px]"></i></span>
+                @endif
+            </div>
         </div>
     </div>
 </div>
@@ -461,10 +481,10 @@
                             <i class="fa-solid fa-clock-rotate-left text-blue-400 text-xs"></i>
                             Riwayat Pembelian Pakan
                         </h3>
-                        <p class="text-white/30 text-xs mt-0.5">{{ $pakans->count() }} entri tercatat</p>
+                        <p class="text-white/30 text-xs mt-0.5">{{ $pakans->total() }} entri tercatat</p>
                     </div>
                     <span class="text-blue-300 font-bold text-sm">
-                        Rp {{ number_format($pakans->sum('total_harga'), 0, ',', '.') }}
+                        Rp {{ number_format($totalPakan, 0, ',', '.') }}
                     </span>
                 </div>
                 <div class="overflow-x-auto">
@@ -500,7 +520,7 @@
                                 <td class="px-4 py-3 text-white/40">{{ $p->pelapor ?? '—' }}</td>
                                 <td class="px-4 py-3 text-center">
                                     <form action="{{ route('admin.pakan.destroy', $p->id) }}" method="POST"
-                                          onsubmit="return confirm('Hapus data pakan ini?')">
+                                          onsubmit="return confirmDelete(event, this, 'pakan ini')">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="text-red-400/70 hover:text-red-400 transition-colors">
                                             <i class="fa-solid fa-trash text-[11px]"></i>
@@ -516,6 +536,31 @@
                         </tbody>
                     </table>
                 </div>
+                {{-- Pagination Pakan --}}
+                @if($pakans->hasPages())
+                <div class="px-4 py-3 flex items-center justify-between gap-3 border-t" style="border-color:rgba(255,255,255,0.06)">
+                    <span class="text-white/30 text-xs">Menampilkan {{ $pakans->firstItem() }}&ndash;{{ $pakans->lastItem() }} dari {{ $pakans->total() }} entri</span>
+                    <div class="flex items-center gap-1">
+                        @if($pakans->onFirstPage())
+                            <span class="pagination-btn pagination-disabled"><i class="fa-solid fa-chevron-left text-[10px]"></i></span>
+                        @else
+                            <a href="{{ $pakans->appends(request()->except('page_pakan'))->previousPageUrl() }}&tab=pakan" class="pagination-btn"><i class="fa-solid fa-chevron-left text-[10px]"></i></a>
+                        @endif
+                        @foreach($pakans->getUrlRange(max(1, $pakans->currentPage()-2), min($pakans->lastPage(), $pakans->currentPage()+2)) as $page => $url)
+                            @if($page == $pakans->currentPage())
+                                <span class="pagination-btn pagination-active-blue">{{ $page }}</span>
+                            @else
+                                <a href="{{ $url }}&tab=pakan" class="pagination-btn">{{ $page }}</a>
+                            @endif
+                        @endforeach
+                        @if($pakans->hasMorePages())
+                            <a href="{{ $pakans->appends(request()->except('page_pakan'))->nextPageUrl() }}&tab=pakan" class="pagination-btn"><i class="fa-solid fa-chevron-right text-[10px]"></i></a>
+                        @else
+                            <span class="pagination-btn pagination-disabled"><i class="fa-solid fa-chevron-right text-[10px]"></i></span>
+                        @endif
+                    </div>
+                </div>
+                @endif
             </div>
         </div>
     </div>
@@ -605,10 +650,10 @@
                             <i class="fa-solid fa-clock-rotate-left text-red-400 text-xs"></i>
                             Riwayat Penanganan Kesehatan
                         </h3>
-                        <p class="text-white/30 text-xs mt-0.5">{{ $kesehatans->count() }} penanganan tercatat</p>
+                        <p class="text-white/30 text-xs mt-0.5">{{ $kesehatans->total() }} penanganan tercatat</p>
                     </div>
                     <span class="text-red-300 font-bold text-sm">
-                        Rp {{ number_format($kesehatans->sum('biaya'), 0, ',', '.') }}
+                        Rp {{ number_format($totalKesehatan, 0, ',', '.') }}
                     </span>
                 </div>
                 <div class="overflow-x-auto">
@@ -646,7 +691,7 @@
                                 <td class="px-4 py-3 text-white/40 text-[11px]">{{ $k->nama_dokter ?? '—' }}</td>
                                 <td class="px-4 py-3 text-center">
                                     <form action="{{ route('admin.kesehatan.destroy', $k->id) }}" method="POST"
-                                          onsubmit="return confirm('Hapus data penanganan ini?')">
+                                          onsubmit="return confirmDelete(event, this, 'penanganan ini')">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="text-red-400/70 hover:text-red-400 transition-colors">
                                             <i class="fa-solid fa-trash text-[11px]"></i>
@@ -662,6 +707,31 @@
                         </tbody>
                     </table>
                 </div>
+                {{-- Pagination Kesehatan --}}
+                @if($kesehatans->hasPages())
+                <div class="px-4 py-3 flex items-center justify-between gap-3 border-t" style="border-color:rgba(255,255,255,0.06)">
+                    <span class="text-white/30 text-xs">Menampilkan {{ $kesehatans->firstItem() }}&ndash;{{ $kesehatans->lastItem() }} dari {{ $kesehatans->total() }} penanganan</span>
+                    <div class="flex items-center gap-1">
+                        @if($kesehatans->onFirstPage())
+                            <span class="pagination-btn pagination-disabled"><i class="fa-solid fa-chevron-left text-[10px]"></i></span>
+                        @else
+                            <a href="{{ $kesehatans->appends(request()->except('page_kesehatan'))->previousPageUrl() }}&tab=kesehatan" class="pagination-btn"><i class="fa-solid fa-chevron-left text-[10px]"></i></a>
+                        @endif
+                        @foreach($kesehatans->getUrlRange(max(1, $kesehatans->currentPage()-2), min($kesehatans->lastPage(), $kesehatans->currentPage()+2)) as $page => $url)
+                            @if($page == $kesehatans->currentPage())
+                                <span class="pagination-btn pagination-active-red">{{ $page }}</span>
+                            @else
+                                <a href="{{ $url }}&tab=kesehatan" class="pagination-btn">{{ $page }}</a>
+                            @endif
+                        @endforeach
+                        @if($kesehatans->hasMorePages())
+                            <a href="{{ $kesehatans->appends(request()->except('page_kesehatan'))->nextPageUrl() }}&tab=kesehatan" class="pagination-btn"><i class="fa-solid fa-chevron-right text-[10px]"></i></a>
+                        @else
+                            <span class="pagination-btn pagination-disabled"><i class="fa-solid fa-chevron-right text-[10px]"></i></span>
+                        @endif
+                    </div>
+                </div>
+                @endif
             </div>
         </div>
     </div>
@@ -678,7 +748,11 @@
                     <i class="fa-solid fa-ticket text-gold text-xs"></i>
                     Riwayat Pembelian Tiket
                 </h3>
-                <p class="text-white/30 text-xs mt-0.5">{{ $orders->count() }} transaksi tercatat · Gunakan untuk konfirmasi tiket pelanggan</p>
+                <p class="text-white/30 text-xs mt-0.5">
+                    {{ $orders->total() }} transaksi ·
+                    <span class="text-yellow-400">{{ $orderPendingCount }} pending</span> ·
+                    <span class="text-emerald-400">{{ $orderConfirmedCount }} confirmed</span>
+                </p>
             </div>
             <div class="relative w-full sm:w-52">
                 <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-xs"></i>
@@ -694,14 +768,12 @@
                     <tr style="background:rgba(255,215,0,0.04); border-bottom:1px solid rgba(255,255,255,0.06)">
                         <th class="px-4 py-3 text-left text-white/35 font-bold uppercase tracking-wider">#</th>
                         <th class="px-4 py-3 text-left text-white/35 font-bold uppercase tracking-wider">Kode Booking</th>
-                        <th class="px-4 py-3 text-left text-white/35 font-bold uppercase tracking-wider">Tgl Order</th>
                         <th class="px-4 py-3 text-left text-white/35 font-bold uppercase tracking-wider">Nama Pemesan</th>
-                        <th class="px-4 py-3 text-left text-white/35 font-bold uppercase tracking-wider">No. HP</th>
                         <th class="px-4 py-3 text-center text-white/35 font-bold uppercase tracking-wider">Tiket</th>
                         <th class="px-4 py-3 text-right text-white/35 font-bold uppercase tracking-wider">Total</th>
-                        <th class="px-4 py-3 text-center text-white/35 font-bold uppercase tracking-wider">Metode</th>
                         <th class="px-4 py-3 text-center text-white/35 font-bold uppercase tracking-wider">Kunjungan</th>
-                        <th class="px-4 py-3 text-center text-white/35 font-bold uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-center text-white/35 font-bold uppercase tracking-wider">Bukti</th>
+                        <th class="px-4 py-3 text-center text-white/35 font-bold uppercase tracking-wider">Status / Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -709,44 +781,217 @@
                     <tr class="order-admin-row border-b hover:bg-white/[0.02] transition-colors" style="border-color:rgba(255,255,255,0.04)">
                         <td class="px-4 py-3 text-white/30">{{ $i + 1 }}</td>
                         <td class="px-4 py-3 text-gold font-mono text-[11px] font-bold tracking-wide">{{ $o->kode_booking }}</td>
-                        <td class="px-4 py-3 text-white/50 whitespace-nowrap">
-                            {{ \Carbon\Carbon::parse($o->tanggal_order)->locale('id')->isoFormat('D MMM YY') }}
-                        </td>
                         <td class="px-4 py-3">
                             <span class="text-white font-semibold order-admin-name">{{ $o->nama_pemesan }}</span>
+                            <div class="text-white/35 text-[10px]">{{ $o->phone }}</div>
                         </td>
-                        <td class="px-4 py-3 text-white/40">{{ $o->phone }}</td>
                         <td class="px-4 py-3 text-center font-bold text-white">{{ $o->jumlah_tiket }}</td>
                         <td class="px-4 py-3 text-right font-bold text-emerald-400">Rp {{ number_format($o->total_harga, 0, ',', '.') }}</td>
-                        <td class="px-4 py-3 text-center">
-                            <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold
-                                {{ $o->metode_bayar === 'qris' ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/20' :
-                                  ($o->metode_bayar === 'transfer' ? 'bg-blue-500/10 text-blue-300 border border-blue-500/20' :
-                                   'bg-purple-500/10 text-purple-300 border border-purple-500/20') }}">
-                                {{ strtoupper($o->metode_bayar) }}
-                            </span>
-                        </td>
                         <td class="px-4 py-3 text-white/50 text-center whitespace-nowrap">
                             {{ \Carbon\Carbon::parse($o->tanggal_kunjungan)->locale('id')->isoFormat('D MMM YY') }}
                         </td>
+                        {{-- Thumbnail Bukti Transfer --}}
                         <td class="px-4 py-3 text-center">
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold
-                                {{ $o->status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' }}">
-                                <span class="w-1.5 h-1.5 rounded-full {{ $o->status === 'confirmed' ? 'bg-emerald-400' : 'bg-yellow-400' }} inline-block"></span>
-                                {{ $o->status === 'confirmed' ? 'Confirmed' : 'Pending' }}
+                            @if($o->bukti_transfer)
+                            <a href="{{ asset('storage/' . $o->bukti_transfer) }}" target="_blank"
+                               class="group inline-block relative">
+                                <img src="{{ asset('storage/' . $o->bukti_transfer) }}"
+                                     alt="Bukti"
+                                     class="w-10 h-10 object-cover rounded-lg border border-white/10 group-hover:border-gold/50 transition-all">
+                                <div class="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <i class="fa-solid fa-expand text-white text-[10px]"></i>
+                                </div>
+                            </a>
+                            @else
+                            <span class="text-white/20 text-[10px] italic">—</span>
+                            @endif
+                        </td>
+                        {{-- Status + Approve/Reject --}}
+                        <td class="px-4 py-3 text-center">
+                            @if($o->status === 'confirmed')
+                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span> Confirmed
                             </span>
+                            @elseif($o->status === 'rejected')
+                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/20">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-400 inline-block"></span> Ditolak
+                            </span>
+                            @else
+                            <div class="flex items-center gap-1.5 justify-center">
+                                @if($o->bukti_transfer)
+                                <a href="{{ route('order.approve', $o->id) }}"
+                                   onclick="return confirmAction(event, this, 'Konfirmasi Pembayaran', 'Konfirmasi pembayaran dari <strong>{{ addslashes($o->nama_pemesan) }}</strong>?', 'Ya, Konfirmasi')"
+                                   class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 hover:bg-emerald-500/30 transition-all">
+                                    <i class="fa-solid fa-check"></i> ACC
+                                </a>
+                                <a href="{{ route('order.reject', $o->id) }}"
+                                   onclick="return confirmAction(event, this, 'Tolak Pembayaran', 'Yakin ingin menolak pembayaran dari <strong>{{ addslashes($o->nama_pemesan) }}</strong>?', 'Ya, Tolak')"
+                                   class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-red-500/15 text-red-400 border border-red-500/25 hover:bg-red-500/30 transition-all">
+                                    <i class="fa-solid fa-xmark"></i> Tolak
+                                </a>
+                                @else
+                                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse inline-block"></span> Belum Upload
+                                </span>
+                                @endif
+                            </div>
+                            @endif
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="9" class="text-center py-12 text-white/25 italic">Belum ada transaksi tiket.</td></tr>
+                    <tr><td colspan="8" class="text-center py-12 text-white/25 italic">Belum ada transaksi tiket.</td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
+        {{-- Pagination Tiket --}}
+        @if($orders->hasPages())
+        <div class="px-5 py-4 flex items-center justify-between gap-3 border-t" style="border-color:rgba(255,255,255,0.06)">
+            <span class="text-white/30 text-xs">Menampilkan {{ $orders->firstItem() }}&ndash;{{ $orders->lastItem() }} dari {{ $orders->total() }} transaksi</span>
+            <div class="flex items-center gap-1">
+                @if($orders->onFirstPage())
+                    <span class="pagination-btn pagination-disabled"><i class="fa-solid fa-chevron-left text-[10px]"></i></span>
+                @else
+                    <a href="{{ $orders->appends(request()->except('page_tiket'))->previousPageUrl() }}&tab=tiket" class="pagination-btn"><i class="fa-solid fa-chevron-left text-[10px]"></i></a>
+                @endif
+                @foreach($orders->getUrlRange(max(1, $orders->currentPage()-2), min($orders->lastPage(), $orders->currentPage()+2)) as $page => $url)
+                    @if($page == $orders->currentPage())
+                        <span class="pagination-btn pagination-active-purple">{{ $page }}</span>
+                    @else
+                        <a href="{{ $url }}&tab=tiket" class="pagination-btn">{{ $page }}</a>
+                    @endif
+                @endforeach
+                @if($orders->hasMorePages())
+                    <a href="{{ $orders->appends(request()->except('page_tiket'))->nextPageUrl() }}&tab=tiket" class="pagination-btn"><i class="fa-solid fa-chevron-right text-[10px]"></i></a>
+                @else
+                    <span class="pagination-btn pagination-disabled"><i class="fa-solid fa-chevron-right text-[10px]"></i></span>
+                @endif
+            </div>
+        </div>
+        @endif
+    </div>
+</div>
+
+
+{{-- ===================================================== --}}
+{{-- MODAL: EDIT SATWA                                     --}}
+{{-- ===================================================== --}}
+<div id="modal-edit-animal"
+     class="fixed inset-0 z-[9999] flex items-center justify-center hidden"
+     onclick="if(event.target===this) closeEditAnimal()">
+    {{-- Backdrop --}}
+    <div class="absolute inset-0" style="background:rgba(0,0,0,0.7); backdrop-filter:blur(8px)"></div>
+
+    {{-- Modal Card --}}
+    <div id="modal-edit-card"
+         class="relative w-full max-w-lg mx-4 rounded-2xl border overflow-hidden"
+         style="background:linear-gradient(145deg,#141414,#0f0f0f); border-color:rgba(59,130,246,0.25); box-shadow:0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(59,130,246,0.1); transform:scale(0.9); opacity:0; transition:all 0.25s cubic-bezier(0.34,1.56,0.64,1)">
+
+        {{-- Header --}}
+        <div class="flex items-center justify-between px-6 py-5 border-b"
+             style="border-color:rgba(59,130,246,0.15); background:rgba(59,130,246,0.05)">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center"
+                     style="background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.25)">
+                    <i class="fa-solid fa-pen-to-square text-blue-400"></i>
+                </div>
+                <div>
+                    <h3 class="text-white font-bold text-sm">Edit Data Satwa</h3>
+                    <p id="edit-animal-subtitle" class="text-white/40 text-xs mt-0.5">Perbarui informasi satwa</p>
+                </div>
+            </div>
+            <button onclick="closeEditAnimal()"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        {{-- Form --}}
+        <form id="edit-animal-form" method="POST" class="p-6 space-y-5">
+            @csrf
+            @method('PUT')
+
+            {{-- Nama & Jumlah (side by side) --}}
+            <div class="grid grid-cols-3 gap-4">
+                <div class="col-span-2">
+                    <label class="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
+                        <i class="fa-solid fa-paw mr-1.5 text-blue-400/70"></i>Nama Satwa
+                    </label>
+                    <input type="text" id="edit-animal-name" name="name" required
+                           class="w-full text-white text-sm font-semibold bg-white/5 border rounded-xl px-4 py-3 outline-none transition-all"
+                           style="border-color:rgba(255,255,255,0.1)"
+                           onfocus="this.style.borderColor='rgba(59,130,246,0.5)'"
+                           onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
+                        <i class="fa-solid fa-layer-group mr-1.5 text-gold/60"></i>Jumlah
+                    </label>
+                    <input type="number" id="edit-animal-amount" name="amount" required min="0"
+                           class="w-full text-white text-sm font-bold bg-white/5 border rounded-xl px-4 py-3 outline-none transition-all text-center"
+                           style="border-color:rgba(255,255,255,0.1)"
+                           onfocus="this.style.borderColor='rgba(255,215,0,0.5)'"
+                           onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+                </div>
+            </div>
+
+            {{-- Status Kesehatan --}}
+            <div>
+                <label class="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
+                    <i class="fa-solid fa-heart-pulse mr-1.5 text-emerald-400/70"></i>Status Kesehatan
+                </label>
+                <div class="flex gap-2 flex-wrap">
+                    @foreach(['Sehat', 'Sakit', 'Karantina', 'Pemulihan'] as $status)
+                    <label class="status-option cursor-pointer">
+                        <input type="radio" name="health_status" value="{{ $status }}"
+                               id="status-{{ Str::slug($status) }}" class="sr-only">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all
+                            @if($status === 'Sehat') status-sehat
+                            @elseif($status === 'Sakit') status-sakit
+                            @elseif($status === 'Karantina') status-karantina
+                            @else status-pemulihan @endif">
+                            <span class="w-1.5 h-1.5 rounded-full status-dot"></span>
+                            {{ $status }}
+                        </span>
+                    </label>
+                    @endforeach
+                </div>
+                {{-- Hidden fallback --}}
+                <input type="hidden" id="edit-health-hidden" name="health_status_fallback">
+            </div>
+
+            {{-- Detail Pakan --}}
+            <div>
+                <label class="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
+                    <i class="fa-solid fa-seedling mr-1.5 text-lime-400/70"></i>Rincian Pakan
+                </label>
+                <textarea id="edit-animal-feeding" name="feeding_detail" required rows="3"
+                          class="w-full text-white text-sm bg-white/5 border rounded-xl px-4 py-3 outline-none transition-all resize-none"
+                          style="border-color:rgba(255,255,255,0.1); line-height:1.6"
+                          onfocus="this.style.borderColor='rgba(59,130,246,0.5)'"
+                          onblur="this.style.borderColor='rgba(255,255,255,0.1)'"></textarea>
+            </div>
+
+            {{-- Actions --}}
+            <div class="flex gap-3 pt-1">
+                <button type="button" onclick="closeEditAnimal()"
+                        class="flex-1 py-3 rounded-xl text-sm font-semibold text-white/60 hover:text-white border transition-all hover:bg-white/5"
+                        style="border-color:rgba(255,255,255,0.12)">
+                    Batal
+                </button>
+                <button type="submit"
+                        class="flex-[2] py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
+                        style="background:linear-gradient(135deg,#3b82f6,#2563eb); color:#fff; box-shadow:0 4px 16px rgba(59,130,246,0.35)">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    Simpan Perubahan
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
 @endsection
+
 
 @push('styles')
 <style>
@@ -783,6 +1028,68 @@
 .admin-input:focus { border-color: rgba(255,215,0,0.4); }
 .admin-input::placeholder { color: rgba(255,255,255,0.25); }
 .admin-input option { background: #1a1a2e; color: #fff; }
+
+/* ===== PAGINATION BUTTONS ===== */
+.pagination-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    text-decoration: none;
+    transition: all 0.18s ease;
+    cursor: pointer;
+}
+.pagination-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border-color: rgba(255,255,255,0.2);
+}
+.pagination-disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+.pagination-active {
+    background: linear-gradient(135deg, rgba(255,215,0,0.25), rgba(255,215,0,0.12));
+    color: #FFD700;
+    border-color: rgba(255,215,0,0.4);
+}
+.pagination-active-blue {
+    background: linear-gradient(135deg, rgba(59,130,246,0.25), rgba(59,130,246,0.12));
+    color: #60a5fa;
+    border-color: rgba(59,130,246,0.4);
+}
+.pagination-active-red {
+    background: linear-gradient(135deg, rgba(239,68,68,0.25), rgba(239,68,68,0.12));
+    color: #f87171;
+    border-color: rgba(239,68,68,0.4);
+}
+.pagination-active-purple {
+    background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(99,102,241,0.12));
+    color: #a5b4fc;
+    border-color: rgba(99,102,241,0.4);
+}
+
+/* ===== EDIT ANIMAL MODAL STATUS BADGES ===== */
+.status-sehat  { color:#34d399; border-color:rgba(52,211,153,0.25); background:rgba(52,211,153,0.08); }
+.status-sakit  { color:#f87171; border-color:rgba(248,113,113,0.25); background:rgba(248,113,113,0.08); }
+.status-karantina { color:#fbbf24; border-color:rgba(251,191,36,0.25); background:rgba(251,191,36,0.08); }
+.status-pemulihan { color:#60a5fa; border-color:rgba(96,165,250,0.25); background:rgba(96,165,250,0.08); }
+
+.status-option input:checked + span.status-sehat   { background:rgba(52,211,153,0.2);  box-shadow:0 0 0 2px rgba(52,211,153,0.4);  }
+.status-option input:checked + span.status-sakit   { background:rgba(248,113,113,0.2); box-shadow:0 0 0 2px rgba(248,113,113,0.4); }
+.status-option input:checked + span.status-karantina { background:rgba(251,191,36,0.2); box-shadow:0 0 0 2px rgba(251,191,36,0.4); }
+.status-option input:checked + span.status-pemulihan { background:rgba(96,165,250,0.2); box-shadow:0 0 0 2px rgba(96,165,250,0.4); }
+
+.status-dot { background: currentColor; }
 </style>
 @endpush
 
@@ -855,50 +1162,13 @@ function hitungTotalPakan() {
         'Rp ' + total.toLocaleString('id-ID');
 }
 
-// ===== SATWA SEARCH =====
+// ===== SATWA SEARCH (works with pagination, searches visible page) =====
 function filterAnimal() {
     const q = document.getElementById('search-animal').value.toLowerCase().trim();
-    const rows = document.querySelectorAll('.animal-row');
-    let vis = 0;
-    rows.forEach(row => {
+    document.querySelectorAll('.animal-row').forEach(row => {
         const name = row.querySelector('.animal-name')?.textContent.toLowerCase() || '';
-        const match = name.includes(q);
-        row.style.display = (q === '') ? (row.classList.contains('extra-row') && !expanded ? 'none' : '') : (match ? '' : 'none');
-        if (row.style.display !== 'none') vis++;
+        row.style.display = (q === '' || name.includes(q)) ? '' : 'none';
     });
-    const c = document.getElementById('visible-count');
-    if (c) c.textContent = vis;
-}
-
-// ===== SHOW MORE SATWA =====
-let expanded = false;
-function toggleMoreRows() {
-    expanded = !expanded;
-    const extras = document.querySelectorAll('.extra-row');
-    const total = document.querySelectorAll('.animal-row').length;
-    extras.forEach(row => {
-        if (expanded) {
-            row.classList.remove('hidden');
-            row.style.display = 'table-row';
-            row.style.opacity = '0';
-            requestAnimationFrame(() => {
-                row.style.transition = 'opacity 0.3s';
-                row.style.opacity = '1';
-            });
-        } else {
-            row.style.opacity = '0';
-            setTimeout(() => {
-                row.style.display = 'none';
-                row.classList.add('hidden');
-                row.style.opacity = '';
-                row.style.transition = '';
-            }, 300);
-        }
-    });
-    document.getElementById('show-more-label').textContent = expanded ? 'Tampilkan Lebih Sedikit' : 'Lihat ' + extras.length + ' Satwa Lainnya';
-    document.getElementById('show-more-icon').className = expanded ? 'fa-solid fa-chevron-up text-[10px]' : 'fa-solid fa-chevron-down text-[10px]';
-    document.getElementById('visible-count').textContent = expanded ? total : total - extras.length;
-    document.getElementById('show-more-btn').style.background = expanded ? 'rgba(255,215,0,0.12)' : 'rgba(255,215,0,0.06)';
 }
 
 // Auto-dismiss alerts
@@ -927,5 +1197,57 @@ function filterGudang() {
     });
 }
 
+</script>
+@endpush
+
+@push('scripts')
+<script>
+// ===== EDIT ANIMAL MODAL =====
+function openEditAnimal(id, name, amount, feedingDetail, healthStatus) {
+    // Set action URL
+    document.getElementById('edit-animal-form').action = '/admin/animal/' + id;
+
+    // Fill form fields
+    document.getElementById('edit-animal-name').value    = name;
+    document.getElementById('edit-animal-amount').value  = amount;
+    document.getElementById('edit-animal-feeding').value = feedingDetail;
+    document.getElementById('edit-animal-subtitle').textContent = 'Mengedit: ' + name;
+
+    // Select health status radio
+    const radios = document.querySelectorAll('input[name="health_status"]');
+    radios.forEach(r => {
+        r.checked = (r.value === healthStatus);
+    });
+    // Fallback jika tidak cocok ke pilihan yang ada
+    if (![...radios].some(r => r.checked)) {
+        radios[0].checked = true;
+    }
+
+    // Show modal with animation
+    const modal = document.getElementById('modal-edit-animal');
+    const card  = document.getElementById('modal-edit-card');
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => {
+        card.style.transform = 'scale(1)';
+        card.style.opacity   = '1';
+    });
+}
+
+function closeEditAnimal() {
+    const modal = document.getElementById('modal-edit-animal');
+    const card  = document.getElementById('modal-edit-card');
+    card.style.transform = 'scale(0.9)';
+    card.style.opacity   = '0';
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }, 220);
+}
+
+// Tutup modal dengan ESC
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeEditAnimal();
+});
 </script>
 @endpush

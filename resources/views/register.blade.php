@@ -11,59 +11,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-    <style>
-        * { font-family: 'Inter', sans-serif; }
-        body {
-            background: radial-gradient(ellipse at 70% 50%, rgba(255,215,0,0.06) 0%, transparent 60%),
-                        radial-gradient(ellipse at 20% 80%, rgba(255,215,0,0.04) 0%, transparent 60%),
-                        #0a0a0a;
-            min-height: 100vh;
-            display: flex; align-items: center; justify-content: center; padding: 24px 16px;
-        }
-        .glass-card {
-            background: rgba(20, 20, 20, 0.85);
-            backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 215, 0, 0.18);
-            border-radius: 24px;
-            box-shadow: 0 40px 80px rgba(0,0,0,0.6);
-        }
-        .form-input {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
-            color: white;
-            padding: 12px 16px;
-            width: 100%;
-            font-size: 14px;
-            transition: border-color 0.25s, background 0.25s;
-            outline: none;
-        }
-        .form-input:focus { border-color: #FFD700; background: rgba(255,215,0,0.04); }
-        .form-input::placeholder { color: rgba(255,255,255,0.28); }
-        .form-label { color: rgba(255,255,255,0.6); font-size: 12px; font-weight: 600; margin-bottom: 6px; display: block; }
-        .gold-gradient-text {
-            background: linear-gradient(135deg, #FFD700, #FFF176, #c9a800);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-        }
-        .register-btn {
-            background: linear-gradient(135deg, #FFD700, #f0c800);
-            color: #1a1a1a; font-weight: 800;
-            padding: 14px; border-radius: 14px; font-size: 14px;
-            width: 100%; letter-spacing: 0.5px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 20px rgba(255,215,0,0.3);
-            border: none; cursor: pointer;
-        }
-        .register-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(255,215,0,0.45); }
-        /* ===== EYE TOGGLE ===== */
-        .pw-toggle {
-            position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-            background: none; border: none; padding: 0; cursor: pointer;
-            color: rgba(255,255,255,0.3); transition: color 0.2s;
-            line-height: 1;
-        }
-        .pw-toggle:hover { color: rgba(255,215,0,0.7); }
-    </style>
+    <!-- //--ini adalah untuk n8n-- -->
+    <link rel="stylesheet" href="{{ asset('css/auth.css') }}">
 </head>
 <body>
 

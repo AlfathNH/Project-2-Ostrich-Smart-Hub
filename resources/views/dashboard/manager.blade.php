@@ -284,7 +284,7 @@
                         </td>
                         <td class="px-4 py-3.5 text-center">
                             <form action="{{ route('manager.staff.destroy', $staff->id) }}" method="POST"
-                                  onsubmit="return confirm('Hapus akun {{ addslashes($staff->name) }}? Tindakan ini tidak dapat dibatalkan.')">
+                                  onsubmit="return confirmDelete(event, this, '{{ addslashes($staff->name) }}')">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="ripple-btn text-red-400/70 hover:text-red-400 transition-colors bg-red-500/8 hover:bg-red-500/15 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-500/15 flex items-center gap-1.5 mx-auto">
                                     <i class="fa-solid fa-trash text-[10px]"></i> Hapus

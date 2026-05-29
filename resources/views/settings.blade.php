@@ -189,7 +189,7 @@
                                     </td>
                                     <td class="px-4 py-3">{{ $hb->keterangan }}</td>
                                     <td class="px-4 py-3 text-right">
-                                        <form action="{{ route('hari-besar.destroy', $hb->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus tanggal ini?');">
+                                        <form action="{{ route('hari-besar.destroy', $hb->id) }}" method="POST" onsubmit="return confirmDelete(event, this, '{{ addslashes($hb->keterangan) }}')">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="text-red-400 hover:text-red-300 transition-colors">

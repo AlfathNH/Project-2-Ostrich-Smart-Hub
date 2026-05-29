@@ -148,16 +148,20 @@ class AdminController extends Controller
     // AKSES ADMIN
     // =========================================================
 
-    public function adminDashboard()
+    public function adminDashboard(Request $request)
     {
-        $animals    = Animal::all();
-        $pakans     = PembelianPakan::latest()->take(30)->get();
-        $kesehatans = PenangananKesehatan::latest()->take(30)->get();
+        $animals    = Animal::paginate(10, ['*'], 'page_animal');
+        $pakans     = PembelianPakan::latest()->paginate(10, ['*'], 'page_pakan');
+        $kesehatans = PenangananKesehatan::latest()->paginate(10, ['*'], 'page_kesehatan');
+        $totalPakan       = PembelianPakan::sum('total_harga');
+        $totalKesehatan   = PenangananKesehatan::sum('biaya');
 
         // Riwayat tiket untuk konfirmasi pembelian
-        $orders = Order::latest('tanggal_order')->take(50)->get();
+        $orders            = Order::latest('tanggal_order')->paginate(15, ['*'], 'page_tiket');
+        $orderPendingCount   = Order::where('status', 'pending')->count();
+        $orderConfirmedCount = Order::where('status', 'confirmed')->count();
 
-        // Stok Gudang: total keseluruhan per jenis pakan
+        // Stok Gudang: total keseluruhan per jenis pakan (tidak dipaginate, biasanya tidak banyak)
         $stokGudang = PembelianPakan::selectRaw('
                 nama_pakan,
                 satuan,
@@ -170,7 +174,11 @@ class AdminController extends Controller
             ->orderBy('nama_pakan')
             ->get();
 
-        return view('dashboard.admin', compact('animals', 'pakans', 'kesehatans', 'orders', 'stokGudang'));
+        return view('dashboard.admin', compact(
+            'animals', 'pakans', 'kesehatans', 'orders', 'stokGudang',
+            'orderPendingCount', 'orderConfirmedCount',
+            'totalPakan', 'totalKesehatan'
+        ));
     }
 
     // ---------- SATWA ----------
@@ -204,6 +212,27 @@ class AdminController extends Controller
         Animal::findOrFail($id)->delete();
         return redirect()->route('admin.dashboard')
                          ->with('success', 'Data hewan berhasil dihapus!');
+    }
+
+    public function updateAnimal(Request $request, $id)
+    {
+        $request->validate([
+            'name'           => 'required|string|max:100',
+            'amount'         => 'required|numeric|min:0',
+            'feeding_detail' => 'required|string',
+            'health_status'  => 'required|string|max:50',
+        ]);
+
+        $animal = Animal::findOrFail($id);
+        $animal->update([
+            'name'           => $request->name,
+            'amount'         => $request->amount,
+            'feeding_detail' => $request->feeding_detail,
+            'health_status'  => $request->health_status,
+        ]);
+
+        return redirect()->route('admin.dashboard', ['tab' => 'satwa'])
+                         ->with('success', 'Data ' . $animal->name . ' berhasil diperbarui!');
     }
 
     // ---------- MANAJEMEN PAKAN ----------
@@ -558,8 +587,8 @@ class AdminController extends Controller
 
         $totalHarga = (int) $request->jumlah_tiket * $hargaSatuan;
 
-        Order::create([
-            'user_id'           => session('user_id'),   // nullable — bisa null kalau staff yang beli
+        $order = Order::create([
+            'user_id'           => session('user_id'),
             'tanggal_order'     => now()->toDateString(),
             'tanggal_kunjungan' => $request->tanggal,
             'nama_pemesan'      => $request->nama_pemesan,
@@ -569,12 +598,10 @@ class AdminController extends Controller
             'total_harga'       => $totalHarga,
             'metode_bayar'      => $request->metode_bayar,
             'catatan'           => $request->catatan ?? null,
-            'status'            => 'confirmed',
+            'status'            => 'pending', // Menunggu bukti pembayaran
         ]);
 
-        return redirect()->route('welcome')
-            ->with('success', '🎉 Pesanan berhasil! Total: Rp '
-                . number_format($totalHarga, 0, ',', '.')
-                . '. Kami akan menghubungi Anda via WhatsApp dalam 5 menit.');
+        return redirect()->route('order.upload', $order->id)
+            ->with('success', '📋 Pesanan berhasil dibuat! Silakan upload bukti pembayaran Anda.');
     }
 }

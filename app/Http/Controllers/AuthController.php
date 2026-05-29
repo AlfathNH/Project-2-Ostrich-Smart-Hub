@@ -6,7 +6,9 @@ use Illuminate\Http\Request;
 use App\Models\Staff;
 use App\Models\User;
 use App\Models\Order;
+use App\Models\PasswordOtp;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http; //---test n8n---
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class AuthController extends Controller
@@ -94,55 +96,250 @@ class AuthController extends Controller
     }
 
     // ==========================================================
-    // LUPA PASSWORD PENGUNJUNG
+    // LUPA PASSWORD — SISTEM OTP
     // ==========================================================
 
+    /**
+     * Tampilkan halaman Step 1: input email
+     */
     public function showForgotPassword()
     {
         return view('forgot_password');
     }
 
     /**
-     * Cari akun & tampilkan form reset di halaman yang sama
+     * Step 1 → Buat OTP & kirim via n8n → redirect ke halaman verifikasi OTP
      */
-    public function findAccount(Request $request)
+    public function sendOtp(Request $request)
     {
         $request->validate([
-            'login_id' => 'required|string',
+            'email' => 'required|email',
+        ], [
+            'email.required' => 'Email wajib diisi.',
+            'email.email'    => 'Format email tidak valid.',
         ]);
 
-        $loginId = trim($request->login_id);
+        $email = trim($request->email);
 
-        $user = User::where('email', $loginId)
-                    ->orWhere('username', $loginId)
-                    ->first();
-
+        // Cek apakah email terdaftar di tabel users (pengunjung)
+        // Jika email tidak ditemukan, berikan notifikasi kustom agar pengguna membuat akun dengan email tersebut
+        $user = User::where('email', $email)->first();
         if (!$user) {
-            return back()->with('find_error', 'Akun dengan email/username tersebut tidak ditemukan.');
+            return back()->with('error', 'Email tidak ditemukan, coba buat akun menggunakan email tersebut');
         }
 
-        // Tampilkan form reset dengan user_id tersembunyi
-        return view('forgot_password', ['foundUser' => $user]);
+        //---test n8n---
+        // Buat kode OTP 6 digit acak
+        $otpCode = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        // Hapus OTP lama untuk email ini (kalau ada), lalu simpan yang baru
+        PasswordOtp::where('email', $email)->delete();
+        PasswordOtp::create([
+            'email'      => $email,
+            'otp'        => $otpCode,
+            'expires_at' => now()->addMinutes(10), // OTP berlaku 10 menit
+        ]);
+
+        //---test n8n---
+        // Kirim OTP ke n8n untuk diteruskan lewat email (Mailtrap/Brevo)
+        $webhookUrl = 'http://localhost:5678/webhook-test/OTPMail'; //---test n8n---
+        try {
+            Http::timeout(10)->post($webhookUrl, [
+                'email_user' => $email,
+                'nama_user'  => $user->name,
+                'kode_otp'   => $otpCode,
+            ]);
+        } catch (\Exception $e) {
+            // Jika n8n tidak dapat dihubungi, tetap lanjut (bisa cek log)
+            \Log::warning('Gagal kirim ke n8n: ' . $e->getMessage());
+        }
+        //---test n8n---
+
+        // Simpan email ke session untuk dipakai di halaman berikutnya
+        session(['otp_email' => $email]);
+
+        return redirect()->route('otp.verify')
+                         ->with('success', 'Kode OTP telah dikirim ke email ' . $email . '. Berlaku 10 menit.');
     }
 
     /**
-     * Proses reset password
+     * Tampilkan halaman Step 2: input kode OTP
+     */
+    public function showVerifyOtp()
+    {
+        // Kalau tidak ada session email, lempar balik ke halaman lupa password
+        if (!session()->has('otp_email')) {
+            return redirect()->route('forgot.password')
+                             ->with('error', 'Sesi habis. Silakan mulai ulang.');
+        }
+        return view('otp_verify');
+    }
+
+    /**
+     * Step 2 → Verifikasi kode OTP → redirect ke halaman reset password
+     */
+    public function verifyOtp(Request $request)
+    {
+        $request->validate([
+            'otp' => 'required|string|size:6',
+        ], [
+            'otp.required' => 'Kode OTP wajib diisi.',
+            'otp.size'     => 'Kode OTP harus 6 digit.',
+        ]);
+
+        $email = session('otp_email');
+        if (!$email) {
+            return redirect()->route('forgot.password')
+                             ->with('error', 'Sesi habis. Silakan mulai ulang.');
+        }
+
+        $otpRecord = PasswordOtp::where('email', $email)
+                                 ->where('otp', trim($request->otp))
+                                 ->first();
+
+        // OTP tidak ditemukan
+        if (!$otpRecord) {
+            return back()->with('error', 'Kode OTP salah. Periksa kembali kode yang dikirim ke email kamu.');
+        }
+
+        // OTP sudah kedaluwarsa
+        if (now()->greaterThan($otpRecord->expires_at)) {
+            $otpRecord->delete();
+            return back()->with('error', 'Kode OTP sudah kedaluwarsa. Silakan minta kode baru.');
+        }
+
+        // OTP valid → tandai di session, hapus record OTP dari DB
+        $otpRecord->delete();
+        session(['otp_verified_email' => $email]);
+        session()->forget('otp_email');
+
+        return redirect()->route('password.reset.form')
+                         ->with('success', 'Kode OTP berhasil diverifikasi! Silakan buat password baru.');
+    }
+
+    /**
+     * Tampilkan halaman Step 3: form reset password baru
+     */
+    public function showResetPassword()
+    {
+        if (!session()->has('otp_verified_email')) {
+            return redirect()->route('forgot.password')
+                             ->with('error', 'Akses tidak valid. Silakan mulai dari awal.');
+        }
+        return view('reset_password');
+    }
+
+    /**
+     * Step 3 → Simpan password baru
      */
     public function resetPassword(Request $request)
     {
         $request->validate([
-            'user_id'              => 'required|exists:users,id',
-            'password'             => 'required|min:6|confirmed',
+            'password' => 'required|min:6|confirmed',
         ], [
             'password.min'       => 'Password minimal 6 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
         ]);
 
-        $user = User::findOrFail($request->user_id);
+        $email = session('otp_verified_email');
+        if (!$email) {
+            return redirect()->route('forgot.password')
+                             ->with('error', 'Sesi habis. Silakan mulai ulang.');
+        }
+
+        $user = User::where('email', $email)->firstOrFail();
         $user->update(['password' => bcrypt($request->password)]);
+
+        // Hapus session OTP
+        session()->forget('otp_verified_email');
 
         return redirect()->route('login')
                          ->with('success', 'Password berhasil diubah! Silakan login dengan password baru.');
+    }
+
+    // ==========================================================
+    // UPLOAD BUKTI PEMBAYARAN
+    // ==========================================================
+
+    public function showUploadBukti($orderId)
+    {
+        if (!session()->has('user_id')) {
+            return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
+        }
+        $order = Order::where('id', $orderId)
+                      ->where('user_id', session('user_id'))
+                      ->firstOrFail();
+        return view('upload_bukti', compact('order'));
+    }
+
+    public function uploadBukti(\Illuminate\Http\Request $request, $orderId)
+    {
+        if (!session()->has('user_id')) {
+            return redirect()->route('login');
+        }
+
+        $request->validate([
+            'bukti_transfer' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ], [
+            'bukti_transfer.required' => 'Bukti transfer wajib diupload.',
+            'bukti_transfer.image'    => 'File harus berupa gambar.',
+            'bukti_transfer.mimes'    => 'Format gambar harus JPG, PNG, atau WEBP.',
+            'bukti_transfer.max'      => 'Ukuran file maksimal 5 MB.',
+        ]);
+
+        $order = Order::where('id', $orderId)
+                      ->where('user_id', session('user_id'))
+                      ->firstOrFail();
+
+        // Simpan file gambar
+        $path = $request->file('bukti_transfer')->store('bukti_transfer', 'public');
+
+        $order->update([
+            'bukti_transfer' => $path,
+            'status'         => 'pending',
+        ]);
+
+        //---test n8n---
+        // Kirim notifikasi ke n8n → Telegram admin
+        $webhookUrl = 'http://localhost:5678/webhook-test/pembayaran-ostrich'; //---test n8n---
+        try {
+            $imageContent = \Storage::disk('public')->get($path);
+            Http::timeout(15)->attach(
+                'bukti_foto',
+                $imageContent,
+                basename($path)
+            )->post($webhookUrl, [
+                'id_order'     => (string) $order->id,
+                'kode_booking' => $order->kode_booking,
+                'nama_user'    => $order->nama_pemesan,
+                'phone'        => $order->phone,
+                'jumlah_tiket' => (string) $order->jumlah_tiket, // cast string agar n8n tidak salah baca
+                'total_harga'  => (string) $order->total_harga,
+                'approve_url'  => url('/api/order/approve/' . $order->id),
+                'reject_url'   => url('/api/order/reject/'  . $order->id),
+            ]);
+        } catch (\Exception $e) {
+            \Log::warning('Gagal kirim bukti ke n8n: ' . $e->getMessage());
+        }
+        //---test n8n---
+
+        return redirect()->route('order.upload', $order->id)
+                         ->with('success', '✅ Bukti pembayaran berhasil dikirim! Admin akan mengkonfirmasi dalam 5-10 menit.');
+    }
+
+    // API untuk approve/reject dari Telegram (dipanggil oleh n8n)  //---test n8n---
+    public function approveOrder($orderId)
+    {
+        $order = Order::findOrFail($orderId);
+        $order->update(['status' => 'confirmed']);
+        return response()->json(['status' => 'success', 'message' => 'Order ' . $order->kode_booking . ' dikonfirmasi!']);
+    }
+
+    public function rejectOrder($orderId)
+    {
+        $order = Order::findOrFail($orderId);
+        $order->update(['status' => 'rejected']);
+        return response()->json(['status' => 'success', 'message' => 'Order ' . $order->kode_booking . ' ditolak.']);
     }
 
     // ==========================================================

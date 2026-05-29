@@ -16,7 +16,13 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: { charcoal: '#1a1a1a', gold: '#FFD700', ivory: '#f8f9fa' },
+                    colors: {
+                        charcoal: '#1a1a1a',
+                        gold: '#FFD700',
+                        ivory: '#f8f9fa',
+                        'gold-dark': '#c9a800',
+                        'glass-bg': 'rgba(26, 26, 26, 0.75)',
+                    },
                     fontFamily: { inter: ['Inter', 'sans-serif'] }
                 }
             }
@@ -91,6 +97,7 @@
             background: rgba(10,10,10,0.7);
             backdrop-filter: blur(20px);
             border-bottom: 1px solid rgba(255,215,0,0.12);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.15);
         }
 
         /* ===== PRICE CARD ===== */
@@ -123,18 +130,25 @@
             background: rgba(255,215,0,0.05);
             border-color: rgba(255,215,0,0.25);
             transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
         }
 
         /* ===== MODAL ===== */
         #login-modal {
-            display: none;
             position: fixed;
             inset: 0;
             z-index: 100;
+            display: flex;
             align-items: center;
             justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s ease;
         }
-        #login-modal.active { display: flex; }
+        #login-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
         .modal-backdrop {
             position: absolute;
             inset: 0;
@@ -160,17 +174,20 @@
             padding: 12px 16px;
             width: 100%;
             font-size: 14px;
-            transition: border-color 0.25s;
+            transition: all 0.25s;
             outline: none;
         }
-        .form-input:focus { border-color: #FFD700; }
+        .form-input:focus {
+            background: rgba(255,255,255,0.08);
+            border-color: #FFD700;
+        }
         .form-input::placeholder { color: rgba(255,255,255,0.3); }
 
         /* ===== SCROLL REVEAL ===== */
         .reveal {
             opacity: 0;
             transform: translateY(30px);
-            transition: all 0.7s ease;
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .reveal.visible {
             opacity: 1;
@@ -181,6 +198,7 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #111; }
         ::-webkit-scrollbar-thumb { background: rgba(255,215,0,0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,215,0,0.6); }
     </style>
 </head>
 <body class="bg-[#0a0a0a] text-white">
@@ -400,7 +418,7 @@
                     ['img' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Struthio_Diversity.jpg/960px-Struthio_Diversity.jpg', 'name' => 'Burung Unta', 'latin' => 'Struthio camelus', 'status' => 'Andalan Utama'],
                     ['img' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Gracie-rhs2005.jpg/960px-Gracie-rhs2005.jpg', 'name' => 'Kuda Poni', 'latin' => 'Equus caballus', 'status' => 'Favorit Anak'],
                     ['img' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Oryctolagus_cuniculus_Rcdo.jpg/960px-Oryctolagus_cuniculus_Rcdo.jpg', 'name' => 'Kelinci Hias', 'latin' => 'Oryctolagus cuniculus', 'status' => 'Lucu & Jinak'],
-                    ['img' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Peacock_Plumage.jpg/960px-Peacock_Plumage.jpg', 'name' => 'Burung Merak', 'latin' => 'Pavo cristatus', 'status' => 'Eksotis'],
+                    ['img' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Peacock_Plumage.jpg/960px-Peacock_Plumage.jpg', 'name' => 'Burung Merak', 'latin' => 'Pavo status', 'status' => 'Eksotis'],
                 ];
                 @endphp
                 @foreach($animalData as $a)
@@ -528,7 +546,6 @@
             </div>
 
             {{-- LOGIN FORM --}}
-            {{-- action uses url() helper for robustness across subdirectory installs --}}
             <form id="form-login" action="{{ url('/login') }}" method="POST" class="space-y-4">
                 @csrf
                 <div class="relative">
@@ -598,35 +615,40 @@
             </button>
         </div>
     </div>
+    </div>
 
     <script>
-        // ===== SESSION FLAG (rendered server-side by Laravel) =====
-        // This is the single source of truth — JS never overrides this.
+        // ===== LOGIKA INTERAKSI HALAMAN UTAMA & AUTHENTIKASI MODAL =====
+
+        // Mengecek status login user berdasarkan Session Laravel (diterjemahkan ke variabel JS)
         window.isLoggedIn = @json(session()->has('role'));
-        // ===== MODAL =====
+
+        // Membuka modal Auth (Login/Daftar) atau mengalihkan ke checkout jika sudah login
         function openLoginModal() {
-            // Safety guard: if Laravel session says user is logged in,
-            // never open the modal — redirect to booking instead.
+            // Pengaman: jika sudah login, langsung diarahkan ke halaman checkout tiket
             if (window.isLoggedIn) {
                 window.location.href = '/checkout';
                 return;
             }
             const modal = document.getElementById('login-modal');
             modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-            // Auto-focus first input for better UX
+            document.body.style.overflow = 'hidden'; // Kunci scroll layar utama
+            
+            // Auto-focus pada input nama/email demi User Experience (UX) yang lebih baik
             setTimeout(() => {
                 const firstInput = modal.querySelector('input:not([type=hidden])');
                 if (firstInput) firstInput.focus();
             }, 150);
         }
 
+        // Menutup modal Auth dan mengembalikan scroll layar utama
         function closeLoginModal() {
             const modal = document.getElementById('login-modal');
             modal.classList.remove('active');
             document.body.style.overflow = '';
         }
 
+        // Berpindah tab antara formulir "Login" dan "Daftar Akun" di dalam modal kustom
         function switchTab(tab) {
             const formLogin = document.getElementById('form-login');
             const formReg   = document.getElementById('form-register');
@@ -652,29 +674,34 @@
             }
         }
 
-        // ===== PASSWORD TOGGLE (shared: login + register fields) =====
-        // Login field uses dedicated modal-password/modal-eye-icon IDs
+        // Fitur menyembunyikan/menampilkan password (Show/Hide Password)
         function toggleModalPw() { togglePw('modal-password', 'modal-eye-icon'); }
 
         function togglePw(fieldId, iconId) {
             const f = document.getElementById(fieldId);
             const i = document.getElementById(iconId);
             if (!f || !i) return;
-            if (f.type === 'password') { f.type = 'text';     i.classList.replace('fa-eye','fa-eye-slash'); }
-            else                       { f.type = 'password'; i.classList.replace('fa-eye-slash','fa-eye'); }
+            if (f.type === 'password') { 
+                f.type = 'text';     
+                i.classList.replace('fa-eye','fa-eye-slash'); 
+            } else { 
+                f.type = 'password'; 
+                i.classList.replace('fa-eye-slash','fa-eye'); 
+            }
         }
 
-        // ===== LOADING STATE ON MODAL SUBMIT =====
+        // Memberikan animasi loading spinner saat formulir login dikirim (submit)
         document.getElementById('form-login').addEventListener('submit', function() {
             const btn = document.getElementById('modal-login-btn');
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
             btn.disabled  = true;
         });
 
-        // Close modal on ESC or backdrop click
+        // Menutup modal Auth secara instan saat tombol Escape (ESC) ditekan
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLoginModal(); });
 
-        // ===== SCROLL REVEAL =====
+        // ===== FITUR ANIMASI TRANSISI SCROLL REVEAL (DUBLIN ZOO STYLE) =====
+        // Memicu class .visible pada elemen .reveal ketika di-scroll masuk ke area layar (viewport)
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) entry.target.classList.add('visible');

@@ -15,7 +15,13 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: { charcoal: '#1a1a1a', gold: '#FFD700' },
+                    colors: {
+                        charcoal: '#1a1a1a',
+                        gold: '#FFD700',
+                        ivory: '#f8f9fa',
+                        'gold-dark': '#c9a800',
+                        'glass-bg': 'rgba(26, 26, 26, 0.75)',
+                    },
                     fontFamily: { inter: ['Inter', 'sans-serif'] }
                 }
             }
@@ -23,9 +29,9 @@
     </script>
     <style>
         * { font-family: 'Inter', sans-serif; }
-        body { background: #0a0a0a; min-height: 100vh; }
+        body { background: #0f0f0f; min-height: 100vh; }
         .glass-navbar {
-            background: rgba(10,10,10,0.8);
+            background: rgba(15,15,15,0.8);
             backdrop-filter: blur(20px);
             border-bottom: 1px solid rgba(255,215,0,0.12);
         }
@@ -53,6 +59,7 @@
         .chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 700; }
         .chip-confirmed { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
         .chip-pending   { background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
+        .chip-rejected  { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
         .chip-qris     { background: rgba(245,158,11,0.1); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
         .chip-transfer { background: rgba(59,130,246,0.1); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
         .chip-ewallet  { background: rgba(168,85,247,0.1); color: #c084fc; border: 1px solid rgba(168,85,247,0.2); }
@@ -90,7 +97,7 @@
                     <span class="text-white text-xs font-semibold max-w-[90px] truncate">{{ session('name', 'Pengunjung') }}</span>
                 </div>
                 <a href="{{ route('ticket.checkout') }}"
-                   class="hidden sm:inline-flex items-center gap-1.5 bg-gold text-charcoal text-xs font-bold px-3 py-1.5 rounded-full hover:bg-yellow-300 transition-all">
+                    class="hidden sm:inline-flex items-center gap-1.5 bg-gold text-charcoal text-xs font-bold px-3 py-1.5 rounded-full hover:bg-yellow-300 transition-all">
                     <i class="fa-solid fa-ticket text-[10px]"></i> Beli Tiket
                 </a>
                 <a href="{{ route('logout') }}"
@@ -153,10 +160,19 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
-                        <span class="chip chip-{{ $order->status === 'confirmed' ? 'confirmed' : 'pending' }}">
-                            <i class="fa-solid {{ $order->status === 'confirmed' ? 'fa-circle-check' : 'fa-clock' }} text-[9px]"></i>
-                            {{ $order->status === 'confirmed' ? 'Terkonfirmasi' : 'Pending' }}
+                        @if($order->status === 'confirmed')
+                        <span class="chip chip-confirmed">
+                            <i class="fa-solid fa-circle-check text-[9px]"></i> Dikonfirmasi
                         </span>
+                        @elseif($order->status === 'rejected')
+                        <span class="chip chip-rejected">
+                            <i class="fa-solid fa-circle-xmark text-[9px]"></i> Ditolak
+                        </span>
+                        @else
+                        <span class="chip chip-pending">
+                            <i class="fa-solid fa-clock text-[9px]"></i> Menunggu Konfirmasi
+                        </span>
+                        @endif
                     </div>
                 </div>
 
@@ -193,17 +209,35 @@
                         <span class="text-white/30 text-xs italic">{{ Str::limit($order->catatan, 40) }}</span>
                         @endif
                     </div>
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 flex-wrap justify-end">
                         <span class="text-white/30 text-[10px] font-mono uppercase tracking-widest">{{ $order->kode_booking }}</span>
-                        <a href="{{ route('ticket.pdf', $order->id) }}" class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-charcoal bg-gold hover:bg-yellow-300 px-3 py-1.5 rounded-lg transition-colors">
+                        @if($order->status === 'pending' && !$order->bukti_transfer)
+                        <a href="{{ route('order.upload', $order->id) }}"
+                           class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-white bg-yellow-600/20 border border-yellow-500/30 px-3 py-1.5 rounded-lg hover:bg-yellow-500/30 transition-colors">
+                            <i class="fa-solid fa-upload"></i> Upload Bukti
+                        </a>
+                        @elseif($order->status === 'pending' && $order->bukti_transfer)
+                        <a href="{{ route('order.upload', $order->id) }}"
+                           class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-300 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-lg hover:bg-blue-500/20 transition-colors">
+                            <i class="fa-solid fa-eye"></i> Lihat Status
+                        </a>
+                        @elseif($order->status === 'rejected')
+                        <a href="{{ route('order.upload', $order->id) }}"
+                           class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-red-300 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-lg hover:bg-red-500/20 transition-colors">
+                            <i class="fa-solid fa-circle-info"></i> Detail
+                        </a>
+                        @else
+                        <a href="{{ route('ticket.pdf', $order->id) }}"
+                           class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-charcoal bg-gold hover:bg-yellow-300 px-3 py-1.5 rounded-lg transition-colors">
                             <i class="fa-solid fa-file-pdf"></i> Unduh E-Ticket
                         </a>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
         @empty
-        <div class="text-center py-20 animate__animated animate__fadeIn">
+         <div class="text-center py-20 animate__animated animate__fadeIn">
             <div class="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6"
                  style="background: rgba(255,215,0,0.06); border: 1px solid rgba(255,215,0,0.12)">
                 <i class="fa-solid fa-ticket text-gold text-3xl opacity-50"></i>

@@ -158,7 +158,7 @@
 
         /* ===== MOBILE: BOTTOM NAV ===== */
         @media (max-width: 768px) {
-            #sidebar { transform: translateX(-100%); width: 280px !important; background: rgba(10,10,10,0.95); backdrop-filter: blur(20px); z-index: 60; }
+            #sidebar { transform: translateX(-100%); width: 280px !important; background: rgba(15,15,15,0.95); backdrop-filter: blur(20px); z-index: 60; }
             #sidebar.mobile-open { transform: translateX(0); }
             #main-content { margin-left: 0 !important; }
             #top-navbar { padding-left: 1rem !important; }
@@ -193,7 +193,7 @@
                 <img src="https://i.ibb.co.com/S76fhmsV/617996203-17859231630592966-4201802536455717090-n-removebg-preview.png"
                      alt="Ostrich Mini Zoo Logo"
                      class="w-9 h-9 object-contain flex-shrink-0"
-                     style="filter: drop-shadow(0 0 6px rgba(255,215,0,0.4))">
+                     style="filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.4))">
                 <div class="sidebar-logo-text flex-1 overflow-hidden">
                     <div class="text-white font-bold text-sm leading-tight">OSTRICH</div>
                     <div class="text-gold text-xs font-medium tracking-widest">SMART HUB</div>
@@ -491,8 +491,228 @@
             from { width: 0; height: 0; opacity: 0.6; }
             to   { width: 200px; height: 200px; opacity: 0; }
         }
+
+        /* ===== CUSTOM CONFIRM MODAL ===== */
+        #confirm-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        #confirm-modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        #confirm-modal {
+            background: linear-gradient(145deg, rgba(25, 25, 25, 0.98), rgba(18, 18, 18, 0.98));
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            border-radius: 20px;
+            padding: 32px 28px 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.04);
+            transform: scale(0.92) translateY(16px);
+            transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+            opacity: 0;
+        }
+        #confirm-modal-overlay.active #confirm-modal {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+        .confirm-modal-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 18px;
+            font-size: 22px;
+            color: #f87171;
+        }
+        .confirm-modal-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #fff;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .confirm-modal-message {
+            font-size: 13px;
+            color: rgba(255,255,255,0.45);
+            text-align: center;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+        .confirm-modal-message strong {
+            color: rgba(255, 215, 0, 0.85);
+            font-weight: 600;
+        }
+        .confirm-modal-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .confirm-modal-btn-cancel {
+            flex: 1;
+            padding: 11px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.65);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+        .confirm-modal-btn-cancel:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border-color: rgba(255,255,255,0.25);
+        }
+        .confirm-modal-btn-confirm {
+            flex: 1;
+            padding: 11px 16px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.35);
+        }
+        .confirm-modal-btn-confirm:hover {
+            background: linear-gradient(135deg, #f87171, #ef4444);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+            transform: translateY(-1px);
+        }
+        .confirm-modal-btn-confirm:active {
+            transform: translateY(0);
+        }
     </style>
 
     @stack('scripts')
+
+    {{-- ===== STRUKTUR HTML MODAL KONFIRMASI HAPUS KUSTOM ===== --}}
+    {{-- Fitur ini digunakan secara global untuk mengganti window.confirm bawaan browser saat menghapus data --}}
+    <div id="confirm-modal-overlay">
+        <div id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+            <div class="confirm-modal-icon">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="confirm-modal-title" id="confirm-modal-title">Konfirmasi Hapus</div>
+            <div class="confirm-modal-message" id="confirm-modal-message">
+                Yakin ingin menghapus data ini?<br>
+                <span style="font-size:11px; color:rgba(255,255,255,0.3)">Tindakan ini tidak dapat dibatalkan.</span>
+            </div>
+            <div class="confirm-modal-actions">
+                {{-- Tombol Batal (Tidak) --}}
+                <button class="confirm-modal-btn-cancel" id="confirm-modal-cancel" onclick="closeConfirmModal()">
+                    <i class="fa-solid fa-xmark" style="margin-right:6px"></i> Tidak
+                </button>
+                {{-- Tombol Konfirmasi (Ya, Hapus) --}}
+                <button class="confirm-modal-btn-confirm" id="confirm-modal-ok">
+                    <i class="fa-solid fa-trash" style="margin-right:6px"></i> Ya, Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== LOGIKA JAVASCRIPT GLOBAL UNTUK MODAL KONFIRMASI KUSTOM =====
+        // Menyimpan fungsi callback sementara saat konfirmasi disetujui
+        let _confirmCallback = null;
+
+        // Menampilkan modal konfirmasi dengan pesan khusus dan menjalankan callback jika tombol "Ya" diklik
+        function showConfirmModal(message, onConfirm) {
+            const overlay  = document.getElementById('confirm-modal-overlay');
+            const msgEl    = document.getElementById('confirm-modal-message');
+            const okBtn    = document.getElementById('confirm-modal-ok');
+
+            msgEl.innerHTML = message +
+                '<br><span style="font-size:11px;color:rgba(255,255,255,0.3)">Tindakan ini tidak dapat dibatalkan.</span>';
+
+            _confirmCallback = onConfirm;
+
+            // Kloning tombol OK untuk membersihkan event listener lama agar tidak menumpuk
+            const newOk = okBtn.cloneNode(true);
+            okBtn.parentNode.replaceChild(newOk, okBtn);
+            newOk.innerHTML = '<i class="fa-solid fa-trash" style="margin-right:6px"></i> Ya, Hapus';
+            newOk.addEventListener('click', function () {
+                closeConfirmModal();
+                if (typeof _confirmCallback === 'function') _confirmCallback();
+            });
+
+            // Aktifkan modal overlay dan kunci scroll body agar tidak bergeser di belakang modal
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Menutup modal konfirmasi dan mengembalikan scroll body seperti semula
+        function closeConfirmModal() {
+            const overlay = document.getElementById('confirm-modal-overlay');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+            _confirmCallback = null;
+        }
+
+        // Menutup modal secara otomatis jika pengguna mengklik area backdrop di luar kartu modal
+        document.getElementById('confirm-modal-overlay').addEventListener('click', function(e) {
+            if (e.target === this) closeConfirmModal();
+        });
+
+        // Menutup modal secara otomatis jika pengguna menekan tombol Escape (ESC) pada keyboard
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeConfirmModal();
+        });
+
+        /**
+         * Menghentikan submit form standar untuk memunculkan modal konfirmasi hapus data kustom.
+         * Cara pakai pada form: <form onsubmit="return confirmDelete(event, this, 'Nama Satwa')">
+         */
+        function confirmDelete(event, form, dataName) {
+            event.preventDefault();
+            const msg = dataName
+                ? 'Yakin ingin menghapus data <strong>' + dataName + '</strong>?'
+                : 'Yakin ingin menghapus data ini?';
+            showConfirmModal(msg, function () {
+                form.submit();
+            });
+            return false;
+        }
+
+        /**
+         * Menghentikan link navigasi standar untuk memunculkan modal konfirmasi aksi kustom.
+         * Cara pakai pada link: <a href="..." onclick="return confirmAction(event, this, 'Judul', 'Pesan Aksi')">
+         */
+        function confirmAction(event, link, title, message, btnLabel) {
+            event.preventDefault();
+            const titleEl = document.getElementById('confirm-modal-title');
+            if (titleEl) titleEl.textContent = title || 'Konfirmasi';
+
+            const okBtn = document.getElementById('confirm-modal-ok');
+            if (okBtn) okBtn.innerHTML = '<i class="fa-solid fa-check" style="margin-right:6px"></i> ' + (btnLabel || 'Ya, Lanjutkan');
+
+            showConfirmModal(message || 'Yakin ingin melanjutkan tindakan ini?', function () {
+                window.location.href = link.href;
+                // Reset kembali judul modal ke standar setelah selesai
+                if (titleEl) titleEl.textContent = 'Konfirmasi Hapus';
+            });
+            return false;
+        }
+    </script>
 </body>
 </html>

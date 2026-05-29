@@ -23,6 +23,7 @@ class Order extends Model
         'total_harga',
         'metode_bayar',
         'catatan',
+        'bukti_transfer',
         'status',
     ];
 

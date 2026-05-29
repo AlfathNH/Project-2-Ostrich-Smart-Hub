@@ -14,14 +14,25 @@ Route::get('/logout',   [AuthController::class, 'logout'])->name('logout');
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
 Route::post('/register',[AuthController::class, 'register']);
 
-// --- LUPA PASSWORD ---
-Route::get('/lupa-password',   [AuthController::class, 'showForgotPassword'])->name('forgot.password');
-Route::post('/lupa-password',  [AuthController::class, 'findAccount'])->name('forgot.find');
-Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('forgot.reset');
+// --- LUPA PASSWORD (SISTEM OTP via n8n) ---             //---test n8n---
+Route::get('/lupa-password',            [AuthController::class, 'showForgotPassword'])->name('forgot.password');
+Route::post('/lupa-password/kirim-otp', [AuthController::class, 'sendOtp'])->name('otp.send');           //---test n8n---
+Route::get('/lupa-password/verifikasi', [AuthController::class, 'showVerifyOtp'])->name('otp.verify');
+Route::post('/lupa-password/verifikasi',[AuthController::class, 'verifyOtp'])->name('otp.check');
+Route::get('/reset-password',           [AuthController::class, 'showResetPassword'])->name('password.reset.form');
+Route::post('/reset-password',          [AuthController::class, 'resetPassword'])->name('forgot.reset');
 
 // --- RIWAYAT TIKET PENGUNJUNG ---
 Route::get('/riwayat-tiket', [AuthController::class, 'myOrders'])->name('ticket.history');
 Route::get('/riwayat-tiket/{id}/pdf', [AuthController::class, 'downloadPdf'])->name('ticket.pdf');
+
+// --- UPLOAD BUKTI PEMBAYARAN ---              //---test n8n---
+Route::get('/order/{id}/upload-bukti',  [AuthController::class, 'showUploadBukti'])->name('order.upload');
+Route::post('/order/{id}/upload-bukti', [AuthController::class, 'uploadBukti'])->name('order.upload.bukti');
+
+// --- API APPROVE / REJECT dari n8n/Telegram --- //---test n8n---
+Route::get('/api/order/approve/{id}', [AuthController::class, 'approveOrder'])->name('order.approve');
+Route::get('/api/order/reject/{id}',  [AuthController::class, 'rejectOrder'])->name('order.reject');
 
 // --- DASHBOARD MANAGER ---
 Route::get('/manager',         [AdminController::class, 'managerDashboard'])->name('manager.dashboard');
@@ -35,6 +46,7 @@ Route::delete('/manager/staff/{id}', [AdminController::class, 'destroyStaff'])->
 Route::get('/admin-panel',             [AdminController::class, 'adminDashboard'])->name('admin.dashboard');
 Route::get('/admin/animal/create',     [AdminController::class, 'createAnimal'])->name('admin.animal.create');
 Route::post('/admin/animal/store',     [AdminController::class, 'storeAnimal'])->name('admin.animal.store');
+Route::put('/admin/animal/{id}',       [AdminController::class, 'updateAnimal'])->name('admin.animal.update');
 Route::delete('/admin/animal/{id}',    [AdminController::class, 'destroyAnimal'])->name('admin.animal.destroy');
 
 // Manajemen Pakan
