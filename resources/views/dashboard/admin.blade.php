@@ -235,8 +235,9 @@
                         </td>
                         <td class="px-4 py-4 text-white/45 text-xs max-w-xs">{{ Str::limit($animal->feeding_detail, 55) }}</td>
                         <td class="px-4 py-4">
-                            <span class="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 text-xs font-semibold px-3 py-1.5 rounded-full border border-emerald-500/20">
-                                <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                            {{-- [BARU] POIN 6: Badge warna DINAMIS berdasarkan nilai health_status --}}
+                            <span class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border {{ $animal->health_badge_class }}">
+                                <span class="w-1.5 h-1.5 {{ $animal->health_dot_class }} rounded-full animate-pulse"></span>
                                 {{ $animal->health_status ?? 'Sehat' }}
                             </span>
                         </td>
@@ -413,7 +414,9 @@
                     @csrf
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">Tanggal</label>
+                            <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">
+                                Tanggal <span class="text-red-400 font-bold">*</span>
+                            </label>
                             <input type="date" name="tanggal" required value="{{ date('Y-m-d') }}"
                                    class="admin-input w-full">
                         </div>
@@ -424,18 +427,25 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">Nama Pakan / Bahan</label>
+                        <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">
+                            Nama Pakan / Bahan <span class="text-red-400 font-bold">*</span>
+                        </label>
                         <input type="text" name="nama_pakan" required placeholder="Contoh: Pisang Kepok, Wortel, Pellet..."
                                class="admin-input w-full">
                     </div>
                     <div class="grid grid-cols-3 gap-3">
                         <div class="col-span-1">
-                            <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">Jumlah</label>
-                            <input type="number" name="jumlah" required min="0.1" step="0.5" placeholder="0"
+                            <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">
+                                Jumlah <span class="text-red-400 font-bold">*</span>
+                            </label>
+                            {{-- [BARU] POIN 3: Input integer (type=number, min=1, step=1) --}}
+                            <input type="number" name="jumlah" required min="1" step="1" placeholder="0"
                                    class="admin-input w-full" id="pakan-jumlah" oninput="hitungTotalPakan()">
                         </div>
                         <div class="col-span-1">
-                            <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">Satuan</label>
+                            <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">
+                                Satuan <span class="text-red-400 font-bold">*</span>
+                            </label>
                             <select name="satuan" class="admin-input w-full" id="pakan-satuan" onchange="updateJumlahStep()">
                                 <option value="kg">kg</option>
                                 <option value="ikat">ikat</option>
@@ -446,7 +456,9 @@
                             </select>
                         </div>
                         <div class="col-span-1">
-                            <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">Harga/Satuan</label>
+                            <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">
+                                Harga/Satuan <span class="text-red-400 font-bold">*</span>
+                            </label>
                             <input type="number" name="harga_satuan" required min="0" placeholder="0"
                                    class="admin-input w-full" id="pakan-harga" oninput="hitungTotalPakan()">
                         </div>
@@ -584,26 +596,68 @@
                         <p class="text-white/30 text-xs">Catat biaya penanganan medis hewan</p>
                     </div>
                 </div>
-                <form action="{{ route('admin.kesehatan.store') }}" method="POST" class="p-5 space-y-4">
+                <form action="{{ route('admin.kesehatan.store') }}" method="POST" class="p-5 space-y-4" id="form-kesehatan">
                     @csrf
+                    {{-- Baris error jika validasi gagal --}}
+                    @if(session('error_kesehatan'))
+                    <div class="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/25 text-red-300 text-xs flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation"></i> {{ session('error_kesehatan') }}
+                    </div>
+                    @endif
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">Tanggal</label>
+                            <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">
+                                Tanggal <span class="text-red-400 font-bold">*</span>
+                            </label>
                             <input type="date" name="tanggal" required value="{{ date('Y-m-d') }}"
                                    class="admin-input w-full">
                         </div>
                         <div>
-                            <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">Hewan</label>
-                            <select name="animal_id" required class="admin-input w-full">
+                            <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">
+                                Hewan <span class="text-red-400 font-bold">*</span>
+                            </label>
+                            <select name="animal_id" required class="admin-input w-full" id="kesehatan-animal-select"
+                                    onchange="updateKesehatanInfo()">
                                 <option value="">Pilih hewan...</option>
                                 @foreach($animals as $animal)
-                                <option value="{{ $animal->id }}">{{ $animal->name }}</option>
+                                <option value="{{ $animal->id }}"
+                                        data-amount="{{ $animal->amount }}"
+                                        data-kode="{{ $animal->kode_satwa ?? strtoupper(substr(preg_replace('/\s+/', '', $animal->name), 0, 4)) }}"
+                                        data-name="{{ $animal->name }}">
+                                    {{ $animal->name }} ({{ $animal->amount }} ekor)
+                                </option>
                                 @endforeach
                             </select>
                         </div>
                     </div>
+
+                    {{-- [BARU] Jumlah Ekor Sakit + Preview Individu --}}
+                    <div id="jumlah-sakit-section">
+                        <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">
+                            Jumlah Ekor Sakit / Ditangani <span class="text-red-400 font-bold">*</span>
+                            <span id="max-ekor-label" class="normal-case font-normal text-white/25 ml-1"></span>
+                        </label>
+                        <div class="flex gap-2 items-center">
+                            <input type="number" name="jumlah_sakit" id="kesehatan-jumlah-sakit" required
+                                   min="1" step="1" placeholder="0"
+                                   class="admin-input flex-1" oninput="updateKodePreview()">
+                            <div id="jumlah-bar" class="flex-1 h-7 rounded-lg overflow-hidden hidden" style="background:rgba(255,255,255,0.05)">
+                                <div id="jumlah-fill" class="h-full rounded-lg transition-all duration-300"
+                                     style="width:0%; background:linear-gradient(90deg,#ef4444,#f97316)"></div>
+                            </div>
+                        </div>
+                        {{-- Preview kode individu --}}
+                        <div id="kode-preview" class="hidden mt-2 px-3 py-2 rounded-lg border"
+                             style="background:rgba(239,68,68,0.05); border-color:rgba(239,68,68,0.2)">
+                            <div class="text-white/30 text-[10px] mb-1 uppercase tracking-wider">Kode individu yang ditandai:</div>
+                            <div id="kode-preview-text" class="text-red-300 text-xs font-mono"></div>
+                        </div>
+                    </div>
+
                     <div>
-                        <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">Jenis Penanganan</label>
+                        <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">
+                            Jenis Penanganan <span class="text-red-400 font-bold">*</span>
+                        </label>
                         <select name="jenis_penanganan" required class="admin-input w-full">
                             <option value="">Pilih jenis...</option>
                             <option value="Pemeriksaan Rutin">Pemeriksaan Rutin</option>
@@ -617,7 +671,9 @@
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">Biaya (Rp)</label>
+                            <label class="block text-white/50 text-xs font-semibold mb-1.5 uppercase tracking-wider">
+                                Biaya (Rp) <span class="text-red-400 font-bold">*</span>
+                            </label>
                             <input type="number" name="biaya" required min="0" placeholder="0"
                                    class="admin-input w-full">
                         </div>
@@ -662,6 +718,8 @@
                             <tr style="background:rgba(239,68,68,0.05); border-bottom:1px solid rgba(255,255,255,0.06)">
                                 <th class="px-4 py-3 text-left text-white/35 font-bold uppercase tracking-wider">Tanggal</th>
                                 <th class="px-4 py-3 text-left text-white/35 font-bold uppercase tracking-wider">Hewan</th>
+                                {{-- [BARU] Kolom ekor sakit + kode individu --}}
+                                <th class="px-4 py-3 text-left text-white/35 font-bold uppercase tracking-wider">Ekor Sakit</th>
                                 <th class="px-4 py-3 text-left text-white/35 font-bold uppercase tracking-wider">Jenis</th>
                                 <th class="px-4 py-3 text-right text-white/35 font-bold uppercase tracking-wider">Biaya</th>
                                 <th class="px-4 py-3 text-left text-white/35 font-bold uppercase tracking-wider">Dokter</th>
@@ -679,6 +737,18 @@
                                         <i class="fa-solid fa-paw text-gold text-[10px]"></i>
                                         {{ $k->nama_hewan }}
                                     </span>
+                                </td>
+                                {{-- [BARU] Tampilkan jumlah sakit + kode individu --}}
+                                <td class="px-4 py-3">
+                                    <div class="flex flex-col gap-0.5">
+                                        <span class="inline-flex items-center gap-1 text-[10px] font-bold text-red-300">
+                                            <i class="fa-solid fa-circle-exclamation text-[9px]"></i>
+                                            {{ $k->jumlah_sakit ?? 1 }} ekor
+                                        </span>
+                                        @if($k->kode_sakit)
+                                        <span class="text-[9px] text-white/30 font-mono leading-tight">{{ $k->kode_sakit }}</span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="px-4 py-3">
                                     <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/10 text-red-300 border border-red-500/20">
@@ -700,7 +770,7 @@
                                 </td>
                             </tr>
                             @empty
-                            <tr><td colspan="6" class="text-center py-12 text-white/25 italic">
+                            <tr><td colspan="7" class="text-center py-12 text-white/25 italic">
                                 Belum ada data penanganan kesehatan.
                             </td></tr>
                             @endforelse
@@ -749,9 +819,10 @@
                     Riwayat Pembelian Tiket
                 </h3>
                 <p class="text-white/30 text-xs mt-0.5">
+                    {{-- [BARU] POIN 1: Label dalam Bahasa Indonesia penuh --}}
                     {{ $orders->total() }} transaksi ·
-                    <span class="text-yellow-400">{{ $orderPendingCount }} pending</span> ·
-                    <span class="text-emerald-400">{{ $orderConfirmedCount }} confirmed</span>
+                    <span class="text-yellow-400">{{ $orderPendingCount }} menunggu</span> ·
+                    <span class="text-emerald-400">{{ $orderConfirmedCount }} terkonfirmasi</span>
                 </p>
             </div>
             <div class="relative w-full sm:w-52">
@@ -809,20 +880,23 @@
                         {{-- Status + Approve/Reject --}}
                         <td class="px-4 py-3 text-center">
                             @if($o->status === 'confirmed')
+                            {{-- [BARU] POIN 1: Label Indonesia "Terkonfirmasi" --}}
                             <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span> Confirmed
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span> Terkonfirmasi
                             </span>
                             @elseif($o->status === 'rejected')
+                            {{-- [BARU] POIN 1: Label Indonesia "Ditolak" --}}
                             <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/20">
                                 <span class="w-1.5 h-1.5 rounded-full bg-red-400 inline-block"></span> Ditolak
                             </span>
                             @else
                             <div class="flex items-center gap-1.5 justify-center">
                                 @if($o->bukti_transfer)
+                                {{-- [BARU] POIN 1: Tombol ACC & Tolak tetap teks aksi, status jadi "Menunggu" --}}
                                 <a href="{{ route('order.approve', $o->id) }}"
                                    onclick="return confirmAction(event, this, 'Konfirmasi Pembayaran', 'Konfirmasi pembayaran dari <strong>{{ addslashes($o->nama_pemesan) }}</strong>?', 'Ya, Konfirmasi')"
                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 hover:bg-emerald-500/30 transition-all">
-                                    <i class="fa-solid fa-check"></i> ACC
+                                    <i class="fa-solid fa-check"></i> Konfirmasi
                                 </a>
                                 <a href="{{ route('order.reject', $o->id) }}"
                                    onclick="return confirmAction(event, this, 'Tolak Pembayaran', 'Yakin ingin menolak pembayaran dari <strong>{{ addslashes($o->nama_pemesan) }}</strong>?', 'Ya, Tolak')"
@@ -831,7 +905,7 @@
                                 </a>
                                 @else
                                 <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse inline-block"></span> Belum Upload
+                                    <span class="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse inline-block"></span> Menunggu
                                 </span>
                                 @endif
                             </div>
@@ -1195,6 +1269,67 @@ function filterGudang() {
         const nama = row.querySelector('.gudang-nama')?.textContent.toLowerCase() || '';
         row.style.display = nama.includes(q) ? '' : 'none';
     });
+}
+// ===== [BARU] FORM KESEHATAN: Update info ekor & preview kode individu =====
+function updateKesehatanInfo() {
+    const select    = document.getElementById('kesehatan-animal-select');
+    const opt       = select.options[select.selectedIndex];
+    const maxEkor   = parseInt(opt?.dataset?.amount) || 0;
+    const maxLabel  = document.getElementById('max-ekor-label');
+    const jumlahInput = document.getElementById('kesehatan-jumlah-sakit');
+    const bar       = document.getElementById('jumlah-bar');
+
+    if (maxEkor > 0) {
+        maxLabel.textContent = '(maks. ' + maxEkor + ' ekor)';
+        jumlahInput.max = maxEkor;
+        bar.classList.remove('hidden');
+    } else {
+        maxLabel.textContent = '';
+        bar.classList.add('hidden');
+    }
+    jumlahInput.value = '';
+    document.getElementById('kode-preview').classList.add('hidden');
+    document.getElementById('jumlah-fill').style.width = '0%';
+}
+
+function updateKodePreview() {
+    const select    = document.getElementById('kesehatan-animal-select');
+    const opt       = select.options[select.selectedIndex];
+    const maxEkor   = parseInt(opt?.dataset?.amount) || 0;
+    const kodeRaw   = opt?.dataset?.kode || 'SATWA';
+    const prefix    = kodeRaw.replace(/-\d+$/, '');
+    const jumlah    = parseInt(document.getElementById('kesehatan-jumlah-sakit').value) || 0;
+    const previewEl = document.getElementById('kode-preview');
+    const previewTxt= document.getElementById('kode-preview-text');
+    const fillEl    = document.getElementById('jumlah-fill');
+
+    if (maxEkor > 0) {
+        const pct = Math.min(100, (jumlah / maxEkor) * 100);
+        fillEl.style.width = pct + '%';
+        // Ubah warna bar sesuai proporsi
+        fillEl.style.background = pct >= 100
+            ? 'linear-gradient(90deg,#dc2626,#991b1b)'
+            : pct >= 50
+                ? 'linear-gradient(90deg,#ef4444,#f97316)'
+                : 'linear-gradient(90deg,#f97316,#fbbf24)';
+    }
+
+    if (jumlah <= 0 || !opt?.value) {
+        previewEl.classList.add('hidden');
+        return;
+    }
+
+    previewEl.classList.remove('hidden');
+    if (jumlah >= maxEkor) {
+        previewTxt.textContent = 'Semua (' + maxEkor + ' ekor)';
+    } else {
+        const kodes = [];
+        for (let i = 1; i <= Math.min(jumlah, 8); i++) {
+            kodes.push(prefix + '-' + String(i).padStart(3, '0'));
+        }
+        if (jumlah > 8) kodes.push('... (+' + (jumlah - 8) + ' lainnya)');
+        previewTxt.textContent = kodes.join(', ');
+    }
 }
 
 </script>

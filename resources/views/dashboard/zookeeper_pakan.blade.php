@@ -207,8 +207,9 @@
                             <div>
                                 <label class="block text-white/40 text-[10px] font-bold uppercase tracking-wider mb-1">Jumlah Digunakan</label>
                                 <div class="flex gap-1">
+                                    {{-- [BARU] POIN 3: Input angka bulat min=1 step=1 --}}
                                     <input type="number" name="jumlah" id="jumlah-{{ $animal->id }}" required
-                                           min="0.01" step="0.5" placeholder="0"
+                                           min="1" step="1" placeholder="0"
                                            class="zk-input" style="flex:1">
                                     <input type="text" name="satuan" id="satuan-{{ $animal->id }}" readonly
                                            placeholder="sat"
@@ -274,14 +275,15 @@ function updateSatuan(animalId) {
 
     if (selected && selected.dataset.satuan) {
         satuanInput.value = selected.dataset.satuan;
-        // Set step dan min sesuai satuan
-        const satuanBulat = ['ikat', 'buah', 'sak', 'ekor'];
-        if (satuanBulat.includes(selected.dataset.satuan)) {
+        // [BARU] POIN 3: Semua satuan default ke integer bulat (step=1, min=1)
+        // Hanya kg dan liter yang tetap mengizinkan desimal
+        const satuanDesimal = ['kg', 'liter'];
+        if (satuanDesimal.includes(selected.dataset.satuan)) {
+            jumlahInput.step = '0.5';
+            jumlahInput.min  = '0.5';
+        } else {
             jumlahInput.step = '1';
             jumlahInput.min  = '1';
-        } else {
-            jumlahInput.step = '0.5';
-            jumlahInput.min  = '0.1';
         }
     } else {
         satuanInput.value = '';

@@ -37,7 +37,7 @@
                 {{-- Name --}}
                 <div>
                     <label class="block text-xs font-semibold text-white/60 mb-2 uppercase tracking-wider">
-                        <i class="fa-solid fa-tag mr-1.5 text-gold/50"></i>Nama Hewan
+                        <i class="fa-solid fa-tag mr-1.5 text-gold/50"></i>Nama Hewan <span class="text-red-400 font-bold">*</span>
                     </label>
                     <input type="text" name="name"
                            class="w-full text-sm text-white placeholder-white/25 bg-white/5 border rounded-xl px-4 py-3 outline-none focus:border-gold/50 transition-colors"
@@ -48,7 +48,7 @@
                 {{-- Amount --}}
                 <div>
                     <label class="block text-xs font-semibold text-white/60 mb-2 uppercase tracking-wider">
-                        <i class="fa-solid fa-layer-group mr-1.5 text-gold/50"></i>Jumlah (Ekor)
+                        <i class="fa-solid fa-layer-group mr-1.5 text-gold/50"></i>Jumlah (Ekor) <span class="text-red-400 font-bold">*</span>
                     </label>
                     <input type="number" name="amount" min="1"
                            class="w-full text-sm text-white placeholder-white/25 bg-white/5 border rounded-xl px-4 py-3 outline-none focus:border-gold/50 transition-colors"
@@ -60,12 +60,24 @@
                 {{-- Feeding Detail --}}
                 <div>
                     <label class="block text-xs font-semibold text-white/60 mb-2 uppercase tracking-wider">
-                        <i class="fa-solid fa-bowl-food mr-1.5 text-gold/50"></i>Rincian Pakan
+                        <i class="fa-solid fa-bowl-food mr-1.5 text-gold/50"></i>Rincian Pakan <span class="text-red-400 font-bold">*</span>
                     </label>
                     <textarea name="feeding_detail" rows="4"
                               class="w-full text-sm text-white placeholder-white/25 bg-white/5 border rounded-xl px-4 py-3 outline-none focus:border-gold/50 transition-colors resize-none"
                               style="border-color: rgba(255,255,255,0.1)"
                               placeholder="Contoh: Sayur 2kg, Pur 1kg, Air minum 5L — 2x sehari" required></textarea>
+                </div>
+
+                {{-- [BARU] POIN 2: Kode Satwa (Tag ID Individual) --}}
+                <div>
+                    <label class="block text-xs font-semibold text-white/60 mb-2 uppercase tracking-wider">
+                        <i class="fa-solid fa-id-badge mr-1.5 text-gold/50"></i>Kode Satwa / Tag ID <span class="normal-case font-normal text-white/30">(opsional, auto-generate jika kosong)</span>
+                    </label>
+                    <input type="text" name="kode_satwa"
+                           class="w-full text-sm text-white placeholder-white/25 bg-white/5 border rounded-xl px-4 py-3 outline-none focus:border-gold/50 transition-colors font-mono"
+                           style="border-color: rgba(255,255,255,0.1)"
+                           placeholder="Contoh: UNTA-001, BURUN-003 (kosongkan untuk otomatis)">
+                    <p class="text-white/25 text-xs mt-1.5 ml-1">Kode unik untuk identifikasi individu satwa. Jika dikosongkan, sistem akan membuat kode otomatis.</p>
                 </div>
 
                 {{-- Divider --}}

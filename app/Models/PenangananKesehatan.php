@@ -16,6 +16,8 @@ class PenangananKesehatan extends Model
         'tanggal',
         'animal_id',
         'nama_hewan',
+        'jumlah_sakit',  // [BARU] Berapa ekor dari spesies ini yang sakit/ditangani
+        'kode_sakit',    // [BARU] Kode individual yang ditandai, contoh: "UNTA-001, UNTA-003"
         'jenis_penanganan',
         'biaya',
         'nama_dokter',
@@ -23,8 +25,9 @@ class PenangananKesehatan extends Model
     ];
 
     protected $casts = [
-        'tanggal' => 'date',
-        'biaya'   => 'integer',
+        'tanggal'      => 'date',
+        'biaya'        => 'integer',
+        'jumlah_sakit' => 'integer',
     ];
 
     /** Relasi ke hewan */

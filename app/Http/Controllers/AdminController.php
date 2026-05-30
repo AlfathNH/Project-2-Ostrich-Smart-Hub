@@ -36,9 +36,9 @@ class AdminController extends Controller
         $stafAktif  = Staff::where('status', 'Bertugas')->count();
         $animals    = Animal::all();
 
-        // Riwayat tiket terbaru untuk konfirmasi
-        $recentOrders = Order::latest('tanggal_order')->take(20)->get();
-        $orders       = Order::latest('tanggal_order')->get();
+        // [BARU] POIN 5: Retensi Data 6 Bulan — hanya tampilkan tiket dari 6 bulan terakhir
+        $recentOrders = Order::sixMonths()->latest('tanggal_order')->take(20)->get();
+        $orders       = Order::sixMonths()->latest('tanggal_order')->get();
 
         return view('dashboard.manager', compact(
             'totalSatwa', 'staffs', 'stafAktif', 'animals', 'recentOrders', 'orders'
@@ -81,6 +81,12 @@ class AdminController extends Controller
         if (session('role') !== 'Manager') abort(403);
 
         $staff = Staff::findOrFail($id);
+
+        // [BARU] POIN 4: Proteksi Akun Manager — akun berole Manager tidak boleh dihapus
+        if (strtolower($staff->role) === 'manager') {
+            return redirect()->route('manager.dashboard')
+                             ->with('error_staff', '⚠️ Akun Manager utama tidak dapat dihapus dari sistem!');
+        }
 
         // Jangan hapus akun sendiri (proteksi dasar)
         if ($staff->id == session('staff_id')) {
@@ -156,8 +162,9 @@ class AdminController extends Controller
         $totalPakan       = PembelianPakan::sum('total_harga');
         $totalKesehatan   = PenangananKesehatan::sum('biaya');
 
-        // Riwayat tiket untuk konfirmasi pembelian
-        $orders            = Order::latest('tanggal_order')->paginate(15, ['*'], 'page_tiket');
+        // [BARU] POIN 5: Retensi Data 6 Bulan — hanya tampilkan tiket dari 6 bulan terakhir
+        $orders              = Order::sixMonths()->latest('tanggal_order')->paginate(15, ['*'], 'page_tiket');
+        // Status dalam Bahasa Indonesia (Poin 1): Menunggu = pending
         $orderPendingCount   = Order::where('status', 'pending')->count();
         $orderConfirmedCount = Order::where('status', 'confirmed')->count();
 
@@ -194,10 +201,21 @@ class AdminController extends Controller
             'name'           => 'required',
             'amount'         => 'required|numeric',
             'feeding_detail' => 'required',
+            // [BARU] POIN 2: kode_satwa opsional, jika tidak diisi akan di-generate otomatis
+            'kode_satwa'     => 'nullable|string|max:20|unique:animals,kode_satwa',
         ]);
+
+        // [BARU] POIN 2: Generate kode_satwa otomatis jika tidak diisi
+        $prefix    = strtoupper(substr(preg_replace('/\s+/', '', $request->name), 0, 4));
+        $lastAnimal = Animal::orderByDesc('id')->first();
+        $nextId    = $lastAnimal ? ($lastAnimal->id + 1) : 1;
+        $kodeSatwa = $request->filled('kode_satwa')
+            ? strtoupper($request->kode_satwa)
+            : $prefix . '-' . str_pad($nextId, 3, '0', STR_PAD_LEFT);
 
         Animal::create([
             'name'           => $request->name,
+            'kode_satwa'     => $kodeSatwa, // [BARU] POIN 2
             'amount'         => $request->amount,
             'feeding_detail' => $request->feeding_detail,
             'health_status'  => 'Sehat',
@@ -242,14 +260,16 @@ class AdminController extends Controller
         $request->validate([
             'tanggal'      => 'required|date',
             'nama_pakan'   => 'required|string|max:100',
-            'jumlah'       => 'required|numeric|min:0.01',
+            // [BARU] POIN 3: Ubah validasi jumlah dari numeric menjadi integer min:1
+            'jumlah'       => 'required|integer|min:1',
             'satuan'       => 'required|string|max:20',
             'harga_satuan' => 'required|integer|min:0',
             'pelapor'      => 'nullable|string|max:100',
             'keterangan'   => 'nullable|string',
         ]);
 
-        $jumlahBaru  = (float) $request->jumlah;
+        // [BARU] POIN 3: Cast ke integer (bukan float lagi)
+        $jumlahBaru  = (int) $request->jumlah;
         $hargaSatuan = (int)   $request->harga_satuan;
         $totalBaru   = $jumlahBaru * $hargaSatuan;
 
@@ -315,18 +335,43 @@ class AdminController extends Controller
         $request->validate([
             'tanggal'          => 'required|date',
             'animal_id'        => 'required|exists:animals,id',
+            'jumlah_sakit'     => 'required|integer|min:1',
             'jenis_penanganan' => 'required|string|max:100',
             'biaya'            => 'required|integer|min:0',
             'nama_dokter'      => 'nullable|string|max:100',
             'keterangan'       => 'nullable|string',
         ]);
 
-        $animal = Animal::findOrFail($request->animal_id);
+        $animal       = Animal::findOrFail($request->animal_id);
+        $jumlahSakit  = (int) $request->jumlah_sakit;
+
+        // Validasi: jumlah sakit tidak boleh melebihi total ekor
+        if ($jumlahSakit > $animal->amount) {
+            return back()->withInput()
+                         ->with('error_kesehatan', 'Jumlah ekor yang sakit (' . $jumlahSakit . ') melebihi total ' . $animal->name . ' (' . $animal->amount . ' ekor)!');
+        }
+
+        // [BARU] Auto-generate kode individu yang ditandai sakit
+        $prefix = $animal->kode_satwa
+            ? preg_replace('/-\d+$/', '', $animal->kode_satwa)
+            : strtoupper(substr(preg_replace('/\s+/', '', $animal->name), 0, 4));
+
+        if ($jumlahSakit >= $animal->amount) {
+            $kode_sakit = 'Semua (' . $animal->amount . ' ekor)';
+        } else {
+            $kodes = [];
+            for ($i = 1; $i <= $jumlahSakit; $i++) {
+                $kodes[] = $prefix . '-' . str_pad($i, 3, '0', STR_PAD_LEFT);
+            }
+            $kode_sakit = implode(', ', $kodes);
+        }
 
         PenangananKesehatan::create([
             'tanggal'          => $request->tanggal,
             'animal_id'        => $request->animal_id,
             'nama_hewan'       => $animal->name,
+            'jumlah_sakit'     => $jumlahSakit,
+            'kode_sakit'       => $kode_sakit,
             'jenis_penanganan' => $request->jenis_penanganan,
             'biaya'            => $request->biaya,
             'nama_dokter'      => $request->nama_dokter,
@@ -334,7 +379,7 @@ class AdminController extends Controller
         ]);
 
         return redirect()->route('admin.dashboard', ['tab' => 'kesehatan'])
-                         ->with('success_kesehatan', 'Data penanganan kesehatan berhasil ditambahkan!');
+                         ->with('success_kesehatan', 'Data penanganan ' . $animal->name . ' (' . $jumlahSakit . ' ekor) berhasil dicatat!');
     }
 
     public function kesehatanDestroy($id)
@@ -395,7 +440,8 @@ class AdminController extends Controller
     {
         $request->validate([
             'nama_pakan'   => 'required|string|max:100',
-            'jumlah'       => 'required|numeric|min:0.01',
+            // [BARU] POIN 3: Validasi jumlah sebagai integer bulat min 1
+            'jumlah'       => 'required|integer|min:1',
             'satuan'       => 'required|string|max:20',
             'catatan'      => 'nullable|string|max:255',
         ]);
@@ -413,8 +459,8 @@ class AdminController extends Controller
                 ->with('error', $animal->name . ' sudah ditandai diberi pakan hari ini!');
         }
 
-        // Kurangi stok dari pembelian_pakan (record terlama yang cocok)
-        $jumlahDikurangi = (float) $request->jumlah;
+        // [BARU] POIN 3: Kurangi stok — cast ke integer
+        $jumlahDikurangi = (int) $request->jumlah;
         $stokRecord = PembelianPakan::whereRaw('LOWER(nama_pakan) = ?', [strtolower(trim($request->nama_pakan))])
             ->where('satuan', $request->satuan)
             ->where('jumlah', '>', 0)
@@ -428,7 +474,7 @@ class AdminController extends Controller
                 $stokRecord->total_harga = 0;
                 $stokRecord->jumlah     = 0;
             } else {
-                $stokRecord->jumlah      = $selisih;
+                $stokRecord->jumlah      = (int) $selisih;
                 $stokRecord->total_harga = (int) ($selisih * $stokRecord->harga_satuan);
             }
             $stokRecord->save();

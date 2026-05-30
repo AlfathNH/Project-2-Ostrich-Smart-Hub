@@ -160,19 +160,16 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
-                        @if($order->status === 'confirmed')
-                        <span class="chip chip-confirmed">
-                            <i class="fa-solid fa-circle-check text-[9px]"></i> Dikonfirmasi
+                        {{-- [BARU] POIN 1: Status badge Bahasa Indonesia menggunakan accessor Model --}}
+                        <span class="chip {{ $order->status === 'confirmed' ? 'chip-confirmed' : ($order->status === 'rejected' ? 'chip-rejected' : 'chip-pending') }}">
+                            @if($order->status === 'confirmed')
+                                <i class="fa-solid fa-circle-check text-[9px]"></i> Terkonfirmasi
+                            @elseif($order->status === 'rejected')
+                                <i class="fa-solid fa-circle-xmark text-[9px]"></i> Ditolak
+                            @else
+                                <i class="fa-solid fa-clock text-[9px]"></i> Menunggu
+                            @endif
                         </span>
-                        @elseif($order->status === 'rejected')
-                        <span class="chip chip-rejected">
-                            <i class="fa-solid fa-circle-xmark text-[9px]"></i> Ditolak
-                        </span>
-                        @else
-                        <span class="chip chip-pending">
-                            <i class="fa-solid fa-clock text-[9px]"></i> Menunggu Konfirmasi
-                        </span>
-                        @endif
                     </div>
                 </div>
 

@@ -353,7 +353,9 @@ class AuthController extends Controller
                 ->with('error', 'Silakan login terlebih dahulu.');
         }
 
+        // [BARU] POIN 5: Hanya tampilkan tiket dari 6 bulan terakhir
         $orders = Order::where('user_id', session('user_id'))
+                       ->sixMonths()
                        ->orderByDesc('tanggal_order')
                        ->get();
 

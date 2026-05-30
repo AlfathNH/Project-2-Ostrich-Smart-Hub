@@ -283,13 +283,20 @@
                             {{ $staff->username }}
                         </td>
                         <td class="px-4 py-3.5 text-center">
-                            <form action="{{ route('manager.staff.destroy', $staff->id) }}" method="POST"
-                                  onsubmit="return confirmDelete(event, this, '{{ addslashes($staff->name) }}')">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="ripple-btn text-red-400/70 hover:text-red-400 transition-colors bg-red-500/8 hover:bg-red-500/15 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-500/15 flex items-center gap-1.5 mx-auto">
-                                    <i class="fa-solid fa-trash text-[10px]"></i> Hapus
-                                </button>
-                            </form>
+                            {{-- [BARU] POIN 4: Sembunyikan tombol Hapus untuk akun Manager --}}
+                            @if(strtolower($staff->role) === 'manager')
+                                <span class="text-white/20 text-[10px] italic px-3 py-1.5 rounded-lg bg-white/3 border border-white/8">
+                                    <i class="fa-solid fa-shield-halved mr-1 text-gold/40"></i>Terlindungi
+                                </span>
+                            @else
+                                <form action="{{ route('manager.staff.destroy', $staff->id) }}" method="POST"
+                                      onsubmit="return confirmDelete(event, this, '{{ addslashes($staff->name) }}')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="ripple-btn text-red-400/70 hover:text-red-400 transition-colors bg-red-500/8 hover:bg-red-500/15 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-500/15 flex items-center gap-1.5 mx-auto">
+                                        <i class="fa-solid fa-trash text-[10px]"></i> Hapus
+                                    </button>
+                                </form>
+                            @endif
                         </td>
                     </tr>
                     @endforeach
@@ -362,10 +369,22 @@
                             {{ \Carbon\Carbon::parse($o->tanggal_kunjungan)->locale('id')->isoFormat('D MMM YY') }}
                         </td>
                         <td class="px-4 py-3 text-center">
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold
-                                {{ $o->status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' }}">
-                                <span class="w-1.5 h-1.5 rounded-full {{ $o->status === 'confirmed' ? 'bg-emerald-400' : 'bg-yellow-400' }} inline-block"></span>
-                                {{ $o->status === 'confirmed' ? 'Confirmed' : 'Pending' }}
+                            {{-- [BARU] POIN 1: Status 3 nilai dalam Bahasa Indonesia penuh --}}
+                            @php
+                                $statusClass = match($o->status) {
+                                    'confirmed' => 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+                                    'rejected'  => 'bg-red-500/10 text-red-400 border border-red-500/20',
+                                    default     => 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
+                                };
+                                $dotClass = match($o->status) {
+                                    'confirmed' => 'bg-emerald-400',
+                                    'rejected'  => 'bg-red-400',
+                                    default     => 'bg-yellow-400',
+                                };
+                            @endphp
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold {{ $statusClass }}">
+                                <span class="w-1.5 h-1.5 rounded-full {{ $dotClass }} inline-block"></span>
+                                {{ $o->status_label }}
                             </span>
                         </td>
                     </tr>
@@ -462,10 +481,22 @@
                             {{ \Carbon\Carbon::parse($o->tanggal_kunjungan)->locale('id')->isoFormat('D MMM YY') }}
                         </td>
                         <td class="px-4 py-3 text-center">
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold
-                                {{ $o->status === 'confirmed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' }}">
-                                <span class="w-1.5 h-1.5 rounded-full {{ $o->status === 'confirmed' ? 'bg-emerald-400' : 'bg-yellow-400' }} inline-block"></span>
-                                {{ $o->status === 'confirmed' ? 'Confirmed' : 'Pending' }}
+                            {{-- [BARU] POIN 1: Status 3 nilai dalam Bahasa Indonesia penuh --}}
+                            @php
+                                $statusClass2 = match($o->status) {
+                                    'confirmed' => 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+                                    'rejected'  => 'bg-red-500/10 text-red-400 border border-red-500/20',
+                                    default     => 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
+                                };
+                                $dotClass2 = match($o->status) {
+                                    'confirmed' => 'bg-emerald-400',
+                                    'rejected'  => 'bg-red-400',
+                                    default     => 'bg-yellow-400',
+                                };
+                            @endphp
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold {{ $statusClass2 }}">
+                                <span class="w-1.5 h-1.5 rounded-full {{ $dotClass2 }} inline-block"></span>
+                                {{ $o->status_label }}
                             </span>
                         </td>
                     </tr>

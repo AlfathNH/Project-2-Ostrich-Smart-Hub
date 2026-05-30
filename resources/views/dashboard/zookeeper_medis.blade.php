@@ -60,11 +60,16 @@
                     </div>
                     <div>
                         <div class="text-white font-bold text-sm uppercase">{{ $animal->name }}</div>
-                        <div class="text-white/35 text-xs">{{ $animal->amount }} Ekor</div>
+                        <div class="text-white/35 text-xs">
+                            {{ $animal->amount }} Ekor
+                            @if($animal->kode_satwa)
+                                &bull; <span class="font-mono text-gold/60">{{ $animal->kode_satwa }}</span>
+                            @endif
+                        </div>
                     </div>
                 </div>
-                <span class="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 text-xs font-bold px-3 py-1.5 rounded-full border border-emerald-500/20 whitespace-nowrap">
-                    <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border {{ $animal->health_badge_class }} whitespace-nowrap">
+                    <span class="w-1.5 h-1.5 {{ $animal->health_dot_class }} rounded-full animate-pulse"></span>
                     {{ $animal->health_status ?? 'Sehat' }}
                 </span>
             </div>
