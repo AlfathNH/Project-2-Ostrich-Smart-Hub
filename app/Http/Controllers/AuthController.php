@@ -9,7 +9,7 @@ use App\Models\Order;
 use App\Models\PasswordOtp;
 use Illuminate\Support\Facades\Hash;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
@@ -140,26 +140,24 @@ class AuthController extends Controller
             'expires_at' => now()->addMinutes(10), // OTP berlaku 10 menit
         ]);
 
-        //---test n8n---
-        // Kirim OTP ke n8n untuk diteruskan lewat email (Mailtrap/Brevo)
-        $webhookUrl = config('services.n8n.webhook_url');
-        $apiKey = config('services.n8n.api_key');
-
-        if ($webhookUrl) {
-            try {
-                Http::timeout(10)->withHeaders([
-                    'X-N8N-AUTH' => $apiKey
-                ])->post($webhookUrl, [
-                    'email_user' => $email,
-                    'nama_user'  => $user->name,
-                    'kode_otp'   => $otpCode,
-                ]);
-            } catch (\Exception $e) {
-                // Jika n8n tidak dapat dihubungi, tetap lanjut (bisa cek log)
-                \Log::warning('Gagal kirim ke n8n: ' . $e->getMessage());
-            }
+        // Kirim OTP langsung via SMTP Laravel
+        try {
+            Mail::html("
+                <div style='font-family: sans-serif; padding: 20px; max-width: 500px; border: 1px solid #ddd; border-radius: 8px;'>
+                    <h2 style='color: #ffb703; margin-bottom: 5px;'>OSTRICH SMART HUB</h2>
+                    <p style='font-size: 14px; color: #555;'>Halo {$user->name},</p>
+                    <p style='font-size: 14px; color: #555;'>Berikut adalah kode OTP rahasia Anda untuk mereset password akun:</p>
+                    <div style='font-size: 24px; font-weight: bold; color: #ffb703; letter-spacing: 2px; margin: 20px 0;'>{$otpCode}</div>
+                    <p style='font-size: 12px; color: #999;'>*Jangan bagikan kode ini kepada siapapun. Kode ini berlaku selama 10 menit.</p>
+                </div>
+            ", function ($message) use ($email) {
+                $message->to($email)
+                        ->subject('[Ostrich Mini Zoo] Kode OTP Reset Password Anda');
+            });
+        } catch (\Exception $e) {
+            \Log::error('Gagal mengirim email OTP: ' . $e->getMessage());
+            return back()->with('error', 'Gagal mengirim email OTP. Silakan periksa konfigurasi mail server.');
         }
-        //---test n8n---
 
         // Simpan email ke session untuk dipakai di halaman berikutnya
         session(['otp_email' => $email]);
