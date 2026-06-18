@@ -142,8 +142,8 @@ class AuthController extends Controller
 
         //---test n8n---
         // Kirim OTP ke n8n untuk diteruskan lewat email (Mailtrap/Brevo)
-        $webhookUrl = env('N8N_WEBHOOK_URL');
-        $apiKey = env('N8N_API_KEY');
+        $webhookUrl = config('services.n8n.webhook_url');
+        $apiKey = config('services.n8n.api_key');
 
         if ($webhookUrl) {
             try {
