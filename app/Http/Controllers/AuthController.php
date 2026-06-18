@@ -142,16 +142,22 @@ class AuthController extends Controller
 
         //---test n8n---
         // Kirim OTP ke n8n untuk diteruskan lewat email (Mailtrap/Brevo)
-        $webhookUrl = 'http://localhost:5678/webhook-test/OTPMail'; //---test n8n---
-        try {
-            Http::timeout(10)->post($webhookUrl, [
-                'email_user' => $email,
-                'nama_user'  => $user->name,
-                'kode_otp'   => $otpCode,
-            ]);
-        } catch (\Exception $e) {
-            // Jika n8n tidak dapat dihubungi, tetap lanjut (bisa cek log)
-            \Log::warning('Gagal kirim ke n8n: ' . $e->getMessage());
+        $webhookUrl = env('N8N_WEBHOOK_URL');
+        $apiKey = env('N8N_API_KEY');
+
+        if ($webhookUrl) {
+            try {
+                Http::timeout(10)->withHeaders([
+                    'X-N8N-AUTH' => $apiKey
+                ])->post($webhookUrl, [
+                    'email_user' => $email,
+                    'nama_user'  => $user->name,
+                    'kode_otp'   => $otpCode,
+                ]);
+            } catch (\Exception $e) {
+                // Jika n8n tidak dapat dihubungi, tetap lanjut (bisa cek log)
+                \Log::warning('Gagal kirim ke n8n: ' . $e->getMessage());
+            }
         }
         //---test n8n---
 
