@@ -62,9 +62,6 @@
                         <div class="text-white font-bold text-sm uppercase">{{ $animal->name }}</div>
                         <div class="text-white/35 text-xs">
                             {{ $animal->amount }} Ekor
-                            @if($animal->kode_satwa)
-                                &bull; <span class="font-mono text-gold/60">{{ $animal->kode_satwa }}</span>
-                            @endif
                         </div>
                     </div>
                 </div>

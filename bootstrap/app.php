@@ -11,7 +11,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Trust semua proxy (termasuk Cloudflare) agar Laravel
+        // membaca X-Forwarded-Proto dengan benar → URL jadi https://
+        $middleware->trustProxies(at: '*');
+
+        // Kecualikan route approve/reject dari CSRF verification
+        // karena route ini juga diakses oleh n8n/Telegram (external service)
+        $middleware->validateCsrfTokens(except: [
+            'admin/order/approve/*',
+            'admin/order/reject/*',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -351,20 +351,28 @@
                     {{-- Info Card --}}
                     <div class="glass-card p-5">
                         <h3 class="text-white font-bold text-sm mb-3 flex items-center gap-2">
-                            <i class="fa-solid fa-circle-info text-gold/60 text-xs"></i> Informasi Transfer
+                            <i class="fa-solid fa-qrcode text-gold/60 text-xs"></i> Informasi Pembayaran QRIS
                         </h3>
+                        {{-- QRIS Image --}}
+                        <div class="flex justify-center mb-4">
+                            <div class="bg-white rounded-2xl p-3 shadow-lg" style="box-shadow: 0 0 20px rgba(255,215,0,0.15);">
+                                <img src="{{ asset('images/qris_ostrich.png') }}"
+                                     alt="QRIS OSTRIC MINI ZOO"
+                                     class="w-36 h-36 object-contain rounded-xl">
+                            </div>
+                        </div>
+                        <div class="text-center mb-4">
+                            <div class="text-white font-bold text-sm">OSTRIC MINI ZOO</div>
+                            <div class="text-white/40 text-[11px] font-mono mt-0.5">NMID: ID1025456460167</div>
+                        </div>
                         <div class="space-y-3">
                             <div class="flex items-center justify-between py-2 border-b" style="border-color:rgba(255,255,255,0.05)">
-                                <span class="text-white/40 text-xs">Bank / Dompet</span>
-                                <span class="text-white font-semibold text-xs">BCA / GoPay / OVO</span>
+                                <span class="text-white/40 text-xs">Metode Bayar</span>
+                                <span class="text-white font-semibold text-xs">QRIS (Semua E-Wallet)</span>
                             </div>
                             <div class="flex items-center justify-between py-2 border-b" style="border-color:rgba(255,255,255,0.05)">
-                                <span class="text-white/40 text-xs">No. Rekening / ID</span>
-                                <span class="text-gold font-black text-xs font-mono">1234-5678-90</span>
-                            </div>
-                            <div class="flex items-center justify-between py-2 border-b" style="border-color:rgba(255,255,255,0.05)">
-                                <span class="text-white/40 text-xs">Atas Nama</span>
-                                <span class="text-white font-semibold text-xs">Ostrich Mini Zoo</span>
+                                <span class="text-white/40 text-xs">Merchant</span>
+                                <span class="text-white font-semibold text-xs">Ostric Mini Zoo</span>
                             </div>
                             <div class="flex items-center justify-between py-2">
                                 <span class="text-white/40 text-xs">Total Transfer</span>
@@ -373,7 +381,7 @@
                         </div>
                         <div class="mt-4 flex items-start gap-2 p-3 rounded-xl" style="background:rgba(251,191,36,0.07); border:1px solid rgba(251,191,36,0.15)">
                             <i class="fa-solid fa-triangle-exclamation text-yellow-400/70 text-xs mt-0.5 flex-shrink-0"></i>
-                            <p class="text-yellow-200/60 text-[11px] leading-relaxed">Pastikan nominal transfer <strong class="text-yellow-300">tepat</strong> sesuai tagihan untuk mempercepat verifikasi.</p>
+                            <p class="text-yellow-200/60 text-[11px] leading-relaxed">Scan QRIS di atas dengan aplikasi e-wallet atau mobile banking, lalu pastikan nominal <strong class="text-yellow-300">tepat</strong> sesuai tagihan.</p>
                         </div>
                     </div>
 

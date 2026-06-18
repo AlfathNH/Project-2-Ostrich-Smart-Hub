@@ -246,10 +246,10 @@
         .modal-card {
             position: relative; z-index: 1;
             background: linear-gradient(160deg, rgba(25,22,10,0.98), rgba(15,14,8,0.98));
-            border: 1px solid rgba(255,215,0,0.3);
-            border-radius: 28px;
-            padding: 36px 32px;
-            width: 92%; max-width: 420px;
+            border: 1px solid rgba(255,215,0,0.25);
+            border-radius: 24px;
+            padding: 24px;
+            width: 94%; max-width: 340px;
             box-shadow:
                 0 40px 80px rgba(0,0,0,0.7),
                 0 0 0 1px rgba(255,215,0,0.06) inset,
@@ -261,7 +261,7 @@
         .qr-frame {
             background: white;
             border-radius: 20px;
-            padding: 16px;
+            padding: 14px;
             display: inline-block;
             box-shadow:
                 0 0 0 1px rgba(255,215,0,0.35),
@@ -273,7 +273,7 @@
         .qr-frame::before, .qr-frame::after {
             content: '';
             position: absolute;
-            width: 22px; height: 22px;
+            width: 24px; height: 24px;
             border-color: #FFD700; border-style: solid;
         }
         .qr-frame::before {
@@ -293,7 +293,7 @@
         }
         .qr-corner-tr, .qr-corner-bl {
             position: absolute;
-            width: 22px; height: 22px;
+            width: 24px; height: 24px;
             border-color: #FFD700; border-style: solid;
         }
         .qr-corner-tr { top: -2px; right: -2px; border-width: 3px 3px 0 0; border-radius: 0 6px 0 0; }
@@ -301,12 +301,12 @@
 
         /* Scanning beam animation on QR */
         @keyframes scanBeam {
-            0%   { top: 16px; opacity: 0.6; }
+            0%   { top: 14px; opacity: 0.6; }
             50%  { opacity: 0.9; }
-            100% { top: calc(100% - 22px); opacity: 0.6; }
+            100% { top: calc(100% - 20px); opacity: 0.6; }
         }
         .scan-beam {
-            position: absolute; left: 16px; right: 16px; height: 2px;
+            position: absolute; left: 14px; right: 14px; height: 2px;
             background: linear-gradient(90deg, transparent, #FFD700, transparent);
             animation: scanBeam 2s ease-in-out infinite alternate;
             pointer-events: none; border-radius: 2px;
@@ -317,8 +317,8 @@
         .modal-done-btn {
             background: linear-gradient(135deg, #FFD700, #f0c800);
             color: #1a1a1a;
-            font-weight: 900; font-size: 14px;
-            padding: 14px 32px;
+            font-weight: 900; font-size: 15px;
+            padding: 16px 32px;
             border-radius: 14px; border: none;
             cursor: pointer; width: 100%;
             transition: all 0.25s ease;
@@ -374,59 +374,41 @@
         <div class="modal-backdrop"></div>
         <div class="modal-card animate__animated animate__zoomIn animate__faster">
 
-            {{-- Header --}}
-            <div class="flex items-center justify-center gap-2 mb-1">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background:rgba(255,215,0,0.12); border:1px solid rgba(255,215,0,0.25)">
-                    <i class="fa-solid fa-qrcode text-gold text-sm"></i>
-                </div>
-            </div>
-            <h2 class="text-xl font-black text-white mt-3 mb-1">Scan QRIS untuk Pembayaran</h2>
-            <p class="text-white/35 text-xs mb-5">Gunakan aplikasi e-wallet atau mobile banking Anda</p>
-
             {{-- QR Code --}}
-            <div class="qr-wrapper mx-auto mb-5" style="width: fit-content">
+            <div class="qr-wrapper mx-auto mb-3" style="width: fit-content">
                 <div class="qr-corner-tr"></div>
                 <div class="qr-corner-bl"></div>
                 <div class="qr-frame" style="position:relative">
-                    {{-- Scanning beam --}}
                     <div class="scan-beam"></div>
-                    {{-- Dummy QR via external generator (replace with real QRIS image in production) --}}
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=OSTRICH-MINI-ZOO-QRIS-PAYMENT&format=png&qzone=1&color=1a1a1a"
-                         alt="QRIS Payment Code"
-                         width="220" height="220"
-                         style="border-radius: 8px; display: block;"
-                         onerror="this.src='https://chart.googleapis.com/chart?chs=220x220&cht=qr&chl=OSTRICH-MINI-ZOO&choe=UTF-8'">
+                    <img src="{{ asset('images/qris_ostrich.png') }}"
+                         alt="QRIS OSTRIC MINI ZOO"
+                         width="280" height="280"
+                         style="border-radius: 10px; display: block; object-fit: contain; max-width: 100%;"
+                         onerror="this.style.display='none'; document.getElementById('qris-fallback').style.display='flex'">
+                    <div id="qris-fallback" style="display:none; width:280px; height:280px; align-items:center; justify-content:center; flex-direction:column; gap:10px; border-radius:10px; background:#f5f5f5;">
+                        <i class="fa-solid fa-qrcode" style="font-size:90px; color:#1a1a1a;"></i>
+                        <div style="font-size:11px; color:#555; text-align:center; font-weight:700;">SCAN QRIS<br>OSTRIC MINI ZOO</div>
+                    </div>
                 </div>
             </div>
 
-            {{-- Amount display --}}
-            <div class="mb-3 py-3 px-5 rounded-2xl" style="background:rgba(255,215,0,0.07); border:1px solid rgba(255,215,0,0.18)">
-                <div class="text-white/40 text-xs uppercase tracking-widest mb-0.5">Total Tagihan</div>
-                <div class="text-2xl font-black gold-text" id="modal-total-display">Rp —</div>
-                <div class="text-white/30 text-xs mt-0.5" id="modal-qty-info">— tiket · Kunjungan hari ini</div>
+            {{-- Total + countdown baris tunggal --}}
+            <div class="flex items-center justify-between mb-4 px-1">
+                <div class="text-left">
+                    <div class="text-white/35 text-[10px] uppercase tracking-widest">Total Tagihan</div>
+                    <div class="text-xl font-black gold-text leading-tight" id="modal-total-display">Rp —</div>
+                    <div class="text-white/30 text-[10px]" id="modal-qty-info">— tiket</div>
+                </div>
+                <div class="flex items-center gap-1.5 py-1.5 px-3 rounded-xl text-xs" style="background:rgba(255,215,0,0.07); border:1px solid rgba(255,215,0,0.15)">
+                    <i class="fa-regular fa-clock text-gold/70"></i>
+                    <span id="qr-countdown" class="text-gold font-bold">05:00</span>
+                </div>
             </div>
 
-            {{-- Instruction --}}
-            <p class="text-white/45 text-xs leading-relaxed mb-6 px-2">
-                Silakan scan kode di atas dan selesaikan pembayaran sesuai total tagihan.
-                QR ini berlaku selama <span class="text-gold font-semibold">5 menit</span>.
-            </p>
-
-            {{-- Countdown timer --}}
-            <div class="flex items-center justify-center gap-2 mb-5 text-white/40 text-xs">
-                <i class="fa-regular fa-clock text-gold/60"></i>
-                QR kedaluwarsa dalam: <span id="qr-countdown" class="text-gold font-bold ml-1">05:00</span>
-            </div>
-
-            {{-- Done button —> submit form --}}
-            <button type="button" onclick="document.getElementById('checkout-form').submit()" class="modal-done-btn block w-full flex items-center justify-center">
-                <i class="fa-solid fa-circle-check mr-2"></i>Selesai Bayar
+            {{-- Done button --}}
+            <button type="button" onclick="document.getElementById('checkout-form').submit()" class="modal-done-btn flex items-center justify-center gap-2">
+                <i class="fa-solid fa-circle-check"></i>Selesai Bayar
             </button>
-
-            <p class="text-white/20 text-[11px] mt-4">
-                Butuh bantuan?
-                <a href="{{ route('welcome') }}" class="text-gold/50 hover:text-gold transition-colors underline">Kembali ke Beranda</a>
-            </p>
         </div>
     </div>
 
@@ -538,7 +520,13 @@
                                 <div class="absolute left-4 top-1/2 -translate-y-1/2 text-white/35 text-xs font-semibold">+62</div>
                                 <input type="tel" name="phone" id="phone"
                                        class="form-input" style="padding-left:48px"
-                                       placeholder="812-xxxx-xxxx" required>
+                                       placeholder="812-xxxx-xxxx"
+                                       inputmode="numeric"
+                                       pattern="[0-9]*"
+                                       maxlength="13"
+                                       onkeypress="return /[0-9]/.test(event.key)"
+                                       oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                                       required>
                             </div>
                         </div>
                     </div>

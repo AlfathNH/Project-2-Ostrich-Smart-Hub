@@ -637,7 +637,7 @@
         let _confirmCallback = null;
 
         // Menampilkan modal konfirmasi dengan pesan khusus dan menjalankan callback jika tombol "Ya" diklik
-        function showConfirmModal(message, onConfirm) {
+        function showConfirmModal(message, onConfirm, btnLabel, btnIcon) {
             const overlay  = document.getElementById('confirm-modal-overlay');
             const msgEl    = document.getElementById('confirm-modal-message');
             const okBtn    = document.getElementById('confirm-modal-ok');
@@ -650,10 +650,14 @@
             // Kloning tombol OK untuk membersihkan event listener lama agar tidak menumpuk
             const newOk = okBtn.cloneNode(true);
             okBtn.parentNode.replaceChild(newOk, okBtn);
-            newOk.innerHTML = '<i class="fa-solid fa-trash" style="margin-right:6px"></i> Ya, Hapus';
+            // Gunakan label & ikon yang dikirim, atau default ke "Ya, Hapus"
+            const label = btnLabel || 'Ya, Hapus';
+            const icon  = btnIcon  || 'fa-trash';
+            newOk.innerHTML = `<i class="fa-solid ${icon}" style="margin-right:6px"></i> ${label}`;
             newOk.addEventListener('click', function () {
+                const callback = _confirmCallback;
                 closeConfirmModal();
-                if (typeof _confirmCallback === 'function') _confirmCallback();
+                if (typeof callback === 'function') callback();
             });
 
             // Aktifkan modal overlay dan kunci scroll body agar tidak bergeser di belakang modal
@@ -698,21 +702,45 @@
          * Menghentikan link navigasi standar untuk memunculkan modal konfirmasi aksi kustom.
          * Cara pakai pada link: <a href="..." onclick="return confirmAction(event, this, 'Judul', 'Pesan Aksi')">
          */
-        function confirmAction(event, link, title, message, btnLabel) {
+        function confirmAction(event, link, title, message, btnLabel, btnIcon) {
             event.preventDefault();
             const titleEl = document.getElementById('confirm-modal-title');
             if (titleEl) titleEl.textContent = title || 'Konfirmasi';
 
-            const okBtn = document.getElementById('confirm-modal-ok');
-            if (okBtn) okBtn.innerHTML = '<i class="fa-solid fa-check" style="margin-right:6px"></i> ' + (btnLabel || 'Ya, Lanjutkan');
-
-            showConfirmModal(message || 'Yakin ingin melanjutkan tindakan ini?', function () {
-                window.location.href = link.href;
-                // Reset kembali judul modal ke standar setelah selesai
-                if (titleEl) titleEl.textContent = 'Konfirmasi Hapus';
-            });
+            showConfirmModal(
+                message || 'Yakin ingin melanjutkan tindakan ini?',
+                function () {
+                    window.location.href = link.href;
+                    // Reset kembali judul modal ke standar setelah selesai
+                    if (titleEl) titleEl.textContent = 'Konfirmasi Hapus';
+                },
+                btnLabel || 'Ya, Lanjutkan',
+                btnIcon  || 'fa-check'
+            );
             return false;
+        }
+
+        /**
+         * Menampilkan modal konfirmasi lalu men-submit sebuah <form> (untuk POST request).
+         * Cara pakai: onclick="confirmFormAction(event, 'id-form', 'Judul', 'Pesan', 'Ya, Konfirmasi')"
+         */
+        function confirmFormAction(event, formId, title, message, btnLabel, btnIcon) {
+            event.preventDefault();
+            const titleEl = document.getElementById('confirm-modal-title');
+            if (titleEl) titleEl.textContent = title || 'Konfirmasi';
+
+            showConfirmModal(
+                message || 'Yakin ingin melanjutkan tindakan ini?',
+                function () {
+                    const form = document.getElementById(formId);
+                    if (form) form.submit();
+                    if (titleEl) titleEl.textContent = 'Konfirmasi Hapus';
+                },
+                btnLabel || 'Ya, Lanjutkan',
+                btnIcon  || 'fa-check'
+            );
         }
     </script>
 </body>
 </html>
+

@@ -8,8 +8,8 @@ use App\Models\User;
 use App\Models\Order;
 use App\Models\PasswordOtp;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http; //---test n8n---
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Http;
 
 class AuthController extends Controller
 {
@@ -291,7 +291,7 @@ class AuthController extends Controller
                       ->where('user_id', session('user_id'))
                       ->firstOrFail();
 
-        // Simpan file gambar
+        // Simpan file gambar ke storage
         $path = $request->file('bukti_transfer')->store('bukti_transfer', 'public');
 
         $order->update([
@@ -299,47 +299,28 @@ class AuthController extends Controller
             'status'         => 'pending',
         ]);
 
-        //---test n8n---
-        // Kirim notifikasi ke n8n → Telegram admin
-        $webhookUrl = 'http://localhost:5678/webhook-test/pembayaran-ostrich'; //---test n8n---
-        try {
-            $imageContent = \Storage::disk('public')->get($path);
-            Http::timeout(15)->attach(
-                'bukti_foto',
-                $imageContent,
-                basename($path)
-            )->post($webhookUrl, [
-                'id_order'     => (string) $order->id,
-                'kode_booking' => $order->kode_booking,
-                'nama_user'    => $order->nama_pemesan,
-                'phone'        => $order->phone,
-                'jumlah_tiket' => (string) $order->jumlah_tiket, // cast string agar n8n tidak salah baca
-                'total_harga'  => (string) $order->total_harga,
-                'approve_url'  => url('/api/order/approve/' . $order->id),
-                'reject_url'   => url('/api/order/reject/'  . $order->id),
-            ]);
-        } catch (\Exception $e) {
-            \Log::warning('Gagal kirim bukti ke n8n: ' . $e->getMessage());
-        }
-        //---test n8n---
-
         return redirect()->route('order.upload', $order->id)
-                         ->with('success', '✅ Bukti pembayaran berhasil dikirim! Admin akan mengkonfirmasi dalam 5-10 menit.');
+                         ->with('success', '✅ Bukti pembayaran berhasil dikirim! Admin akan segera mengkonfirmasi.');
     }
 
-    // API untuk approve/reject dari Telegram (dipanggil oleh n8n)  //---test n8n---
+    // Konfirmasi pembayaran oleh Admin
     public function approveOrder($orderId)
     {
         $order = Order::findOrFail($orderId);
         $order->update(['status' => 'confirmed']);
-        return response()->json(['status' => 'success', 'message' => 'Order ' . $order->kode_booking . ' dikonfirmasi!']);
+
+        return redirect(route('admin.dashboard') . '?tab=tiket')
+                         ->with('success', '✅ Pembayaran ' . $order->kode_booking . ' (' . $order->nama_pemesan . ') berhasil dikonfirmasi!');
     }
 
+    // Tolak pembayaran oleh Admin
     public function rejectOrder($orderId)
     {
         $order = Order::findOrFail($orderId);
         $order->update(['status' => 'rejected']);
-        return response()->json(['status' => 'success', 'message' => 'Order ' . $order->kode_booking . ' ditolak.']);
+
+        return redirect(route('admin.dashboard') . '?tab=tiket')
+                         ->with('error', '❌ Pembayaran ' . $order->kode_booking . ' (' . $order->nama_pemesan . ') telah ditolak.');
     }
 
     // ==========================================================
@@ -353,10 +334,9 @@ class AuthController extends Controller
                 ->with('error', 'Silakan login terlebih dahulu.');
         }
 
-        // [BARU] POIN 5: Hanya tampilkan tiket dari 6 bulan terakhir
+        // Tampilkan semua tiket milik user, diurutkan terbaru
         $orders = Order::where('user_id', session('user_id'))
-                       ->sixMonths()
-                       ->orderByDesc('tanggal_order')
+                       ->latest('id')
                        ->get();
 
         return view('riwayat_tiket', compact('orders'));

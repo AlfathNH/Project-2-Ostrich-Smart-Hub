@@ -22,7 +22,10 @@ class AdminController extends Controller
     public function welcome()
     {
         $hargaTiket = Setting::where('key', 'harga_tiket_biasa')->first()->value ?? 25000;
-        return view('welcome_ostrich', compact('hargaTiket'));
+        $hargaBiasa = Setting::where('key', 'harga_tiket_biasa')->first()->value ?? 25000;
+        $hargaLibur = Setting::where('key', 'harga_tiket_libur')->first()->value ?? 30000;
+        $hargaBesar = Setting::where('key', 'harga_tiket_besar')->first()->value ?? 35000;
+        return view('welcome_ostrich', compact('hargaTiket', 'hargaBiasa', 'hargaLibur', 'hargaBesar'));
     }
 
     // =========================================================
@@ -37,8 +40,8 @@ class AdminController extends Controller
         $animals    = Animal::all();
 
         // [BARU] POIN 5: Retensi Data 6 Bulan — hanya tampilkan tiket dari 6 bulan terakhir
-        $recentOrders = Order::sixMonths()->latest('tanggal_order')->take(20)->get();
-        $orders       = Order::sixMonths()->latest('tanggal_order')->get();
+        $recentOrders = Order::sixMonths()->latest('id')->take(20)->get();
+        $orders       = Order::sixMonths()->latest('id')->get();
 
         return view('dashboard.manager', compact(
             'totalSatwa', 'staffs', 'stafAktif', 'animals', 'recentOrders', 'orders'
@@ -163,7 +166,7 @@ class AdminController extends Controller
         $totalKesehatan   = PenangananKesehatan::sum('biaya');
 
         // [BARU] POIN 5: Retensi Data 6 Bulan — hanya tampilkan tiket dari 6 bulan terakhir
-        $orders              = Order::sixMonths()->latest('tanggal_order')->paginate(15, ['*'], 'page_tiket');
+        $orders              = Order::sixMonths()->latest('id')->paginate(15, ['*'], 'page_tiket');
         // Status dalam Bahasa Indonesia (Poin 1): Menunggu = pending
         $orderPendingCount   = Order::where('status', 'pending')->count();
         $orderConfirmedCount = Order::where('status', 'confirmed')->count();
@@ -201,21 +204,10 @@ class AdminController extends Controller
             'name'           => 'required',
             'amount'         => 'required|numeric',
             'feeding_detail' => 'required',
-            // [BARU] POIN 2: kode_satwa opsional, jika tidak diisi akan di-generate otomatis
-            'kode_satwa'     => 'nullable|string|max:20|unique:animals,kode_satwa',
         ]);
-
-        // [BARU] POIN 2: Generate kode_satwa otomatis jika tidak diisi
-        $prefix    = strtoupper(substr(preg_replace('/\s+/', '', $request->name), 0, 4));
-        $lastAnimal = Animal::orderByDesc('id')->first();
-        $nextId    = $lastAnimal ? ($lastAnimal->id + 1) : 1;
-        $kodeSatwa = $request->filled('kode_satwa')
-            ? strtoupper($request->kode_satwa)
-            : $prefix . '-' . str_pad($nextId, 3, '0', STR_PAD_LEFT);
 
         Animal::create([
             'name'           => $request->name,
-            'kode_satwa'     => $kodeSatwa, // [BARU] POIN 2
             'amount'         => $request->amount,
             'feeding_detail' => $request->feeding_detail,
             'health_status'  => 'Sehat',
@@ -351,27 +343,11 @@ class AdminController extends Controller
                          ->with('error_kesehatan', 'Jumlah ekor yang sakit (' . $jumlahSakit . ') melebihi total ' . $animal->name . ' (' . $animal->amount . ' ekor)!');
         }
 
-        // [BARU] Auto-generate kode individu yang ditandai sakit
-        $prefix = $animal->kode_satwa
-            ? preg_replace('/-\d+$/', '', $animal->kode_satwa)
-            : strtoupper(substr(preg_replace('/\s+/', '', $animal->name), 0, 4));
-
-        if ($jumlahSakit >= $animal->amount) {
-            $kode_sakit = 'Semua (' . $animal->amount . ' ekor)';
-        } else {
-            $kodes = [];
-            for ($i = 1; $i <= $jumlahSakit; $i++) {
-                $kodes[] = $prefix . '-' . str_pad($i, 3, '0', STR_PAD_LEFT);
-            }
-            $kode_sakit = implode(', ', $kodes);
-        }
-
         PenangananKesehatan::create([
             'tanggal'          => $request->tanggal,
             'animal_id'        => $request->animal_id,
             'nama_hewan'       => $animal->name,
             'jumlah_sakit'     => $jumlahSakit,
-            'kode_sakit'       => $kode_sakit,
             'jenis_penanganan' => $request->jenis_penanganan,
             'biaya'            => $request->biaya,
             'nama_dokter'      => $request->nama_dokter,

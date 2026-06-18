@@ -30,9 +30,9 @@ Route::get('/riwayat-tiket/{id}/pdf', [AuthController::class, 'downloadPdf'])->n
 Route::get('/order/{id}/upload-bukti',  [AuthController::class, 'showUploadBukti'])->name('order.upload');
 Route::post('/order/{id}/upload-bukti', [AuthController::class, 'uploadBukti'])->name('order.upload.bukti');
 
-// --- API APPROVE / REJECT dari n8n/Telegram --- //---test n8n---
-Route::get('/api/order/approve/{id}', [AuthController::class, 'approveOrder'])->name('order.approve');
-Route::get('/api/order/reject/{id}',  [AuthController::class, 'rejectOrder'])->name('order.reject');
+// --- API APPROVE / REJECT dari n8n/Telegram & Admin Web ---
+Route::post('/admin/order/approve/{id}', [AuthController::class, 'approveOrder'])->name('order.approve');
+Route::post('/admin/order/reject/{id}',  [AuthController::class, 'rejectOrder'])->name('order.reject');
 
 // --- DASHBOARD MANAGER ---
 Route::get('/manager',         [AdminController::class, 'managerDashboard'])->name('manager.dashboard');

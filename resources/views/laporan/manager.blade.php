@@ -149,7 +149,9 @@
             .report-header, .rtbl thead tr, .scard, .row-total td, .rk-box {
                 -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;
             }
-            @page { margin:8mm 12mm; size:A4 landscape; }
+            @page { margin:8mm 12mm; size:A4; }
+            .summary-section { grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 12px 32px; }
+            .rekap-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
         }
     </style>
 </head>
