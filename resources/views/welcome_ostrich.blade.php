@@ -721,21 +721,6 @@
                         @endif
                     </div>
                 </div>
-                <div class="col-lg-4 col-md-6 wow fadeInUp" data-wow-delay="0.5s">
-                    <div class="ticket-tier">
-                        <div class="mb-3"><i class="fa fa-calendar-alt fa-2x" style="color:#2EB872"></i></div>
-                        <h4 class="fw-bold mb-1">Hari Besar / Event</h4>
-                        <p class="text-muted small">Libur Nasional & Event Khusus</p>
-                        <div class="tier-price">Rp {{ number_format($hargaBesar, 0, ',', '.') }}</div>
-                        <div class="tier-label">per orang</div>
-
-                        @if(session()->has('role'))
-                            <a href="/checkout" class="btn btn-outline-success w-100" style="border-radius:50px">Pesan Sekarang</a>
-                        @else
-                            <a href="{{ route('login') }}" class="btn btn-outline-success w-100" style="border-radius:50px">Pesan Sekarang</a>
-                        @endif
-                    </div>
-                </div>
             </div>
         </div>
     </div>
